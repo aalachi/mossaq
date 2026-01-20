@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Now Playing | Mossaq</title>
+    <style>
+        /* --- SHARED VARIABLES --- */
+        :root {
+            --primary: #1db954;
+            --text-main: #ffffff;
+            --text-muted: #b3b3b3;
+            --bg-dark: #121212;
+            --bg-card: #181818;
+            --glass: rgba(255, 255, 255, 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* --- BLURRED BACKDROP --- */
+        .backdrop {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url('https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=2070&auto=format&fit=crop') no-repeat center center/cover;
+            filter: blur(80px) brightness(0.4);
+            z-index: -1;
+        }
+
+        /* --- LAYOUT --- */
+        .player-container {
+            display: flex;
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            height: 100%;
+            padding: 2rem;
+            gap: 3rem;
+        }
+
+        /* --- LEFT COLUMN: THE PLAYER --- */
+        .main-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center; /* Center everything */
+            text-align: center;
+        }
+
+        .album-art {
+            width: 100%;
+            max-width: 450px;
+            aspect-ratio: 1/1;
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            margin-bottom: 2rem;
+            object-fit: cover;
+            /* Tiny animation to make it feel alive */
+            transition: transform 0.5s ease;
+        }
+        .album-art:hover { transform: scale(1.02); }
+
+        .track-title { font-size: 2.5rem; margin-bottom: 0.5rem; line-height: 1.2; }
+        .artist-name { font-size: 1.2rem; color: var(--text-muted); margin-bottom: 2rem; display: block; }
+
+        /* Custom Audio Player Styling */
+        .audio-wrapper {
+            width: 100%;
+            max-width: 500px;
+            background: rgba(0,0,0,0.3);
+            padding: 1rem;
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+        }
+
+        audio {
+            width: 100%;
+            height: 40px;
+            outline: none;
+        }
+        
+        /* Customizing the audio player colors (Chrome/Safari/Edge) */
+        audio::-webkit-media-controls-panel { background-color: transparent; }
+        audio::-webkit-media-controls-play-button { background-color: var(--text-main); border-radius: 50%; }
+        audio::-webkit-media-controls-current-time-display,
+        audio::-webkit-media-controls-time-remaining-display { color: var(--text-main); }
+
+        /* Action Buttons */
+        .controls-row {
+            margin-top: 2rem;
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .btn-action {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+        }
+        .btn-action:hover { background: rgba(255,255,255,0.2); }
+        .btn-action.primary { background: var(--primary); color: black; border: none; }
+        .btn-action.primary:hover { background: #1ed760; }
+
+        /* --- RIGHT COLUMN: CONTEXT & COMMENTS --- */
+        .sidebar-context {
+            flex: 0 0 400px; /* Fixed width */
+            background: rgba(0,0,0,0.4);
+            border-radius: 12px;
+            padding: 2rem;
+            backdrop-filter: blur(20px);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Scrollable if comments get long */
+        }
+
+        .section-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+        }
+
+        .artist-bio {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 2rem;
+        }
+        .bio-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
+
+        /* Comments List */
+        .comment-list { flex: 1; }
+        
+        .comment {
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .user-name { font-weight: bold; color: var(--text-main); }
+        .timestamp { font-size: 0.75rem; color: var(--text-muted); }
+        .comment-body { color: #ddd; line-height: 1.4; }
+
+        /* Comment Input */
+        .comment-input-area {
+            margin-top: auto; /* Pushes to bottom */
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .input-box {
+            width: 100%;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            color: white;
+            margin-bottom: 10px;
+        }
+        .btn-post {
+            background: var(--text-main);
+            color: black;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            float: right;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .player-container { flex-direction: column; overflow-y: scroll; }
+            .sidebar-context { flex: none; width: 100%; height: auto; margin-bottom: 2rem; }
+            .album-art { max-width: 300px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="backdrop"></div>
+
+    <div class="player-container">
+        
+        <main class="main-stage">
+            <img src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=2070&auto=format&fit=crop" class="album-art" alt="Album Art">
+            
+            <h1 class="track-title" th:text="${track.title}">Track Title</h1>
+            <a href="#" class="artist-name" th:text="${track.artist}">Artist Name</a>
+
+            <div class="audio-wrapper">
+                <audio controls>
+                    <source th:src="@{'/track/' + ${track.id} + '/stream'}" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+
+            <div class="controls-row">
+                <button class="btn-action primary">♥ Like</button>
+                <button class="btn-action">➕ Add to Playlist</button>
+                <button class="btn-action">🔗 Share</button>
+                <a href="/main" class="btn-action" style="background:transparent; border:1px solid #555;">&larr; Back</a>
+            </div>
+        </main>
+
+        <aside class="sidebar-context">
+            
+            <div class="section-title">About the Artist</div>
+            <div class="artist-bio">
+                <img src="https://via.placeholder.com/50" class="bio-avatar" alt="Artist">
+                <div>
+                    <div style="font-weight:bold;" th:text="${track.artist}">Artist Name</div>
+                    <div style="font-size:0.8rem; color:#aaa;">12.5k Followers</div>
+                </div>
+                <button style="margin-left:auto; background:transparent; color:var(--primary); border:1px solid var(--primary); padding:4px 10px; border-radius:12px; cursor:pointer;">Follow</button>
+            </div>
+
+            <div class="section-title">Comments (24)</div>
+            <div class="comment-list">
+                <div class="comment">
+                    <div class="comment-header">
+                        <span class="user-name">NeonRider</span>
+                        <span class="timestamp">2h ago</span>
+                    </div>
+                    <div class="comment-body">This drop is insane! 🔥 Adding this to my night drive playlist immediately.</div>
+                </div>
+
+                <div class="comment">
+                    <div class="comment-header">
+                        <span class="user-name">SarahDev</span>
+                        <span class="timestamp">5h ago</span>
+                    </div>
+                    <div class="comment-body">The mixing on the vocals is so clean. What reverb did you use?</div>
+                </div>
+                
+                <div class="comment">
+                    <div class="comment-header">
+                        <span class="user-name">ProducerMike</span>
+                        <span class="timestamp">1d ago</span>
+                    </div>
+                    <div class="comment-body">Keep up the good work man, huge inspiration.</div>
+                </div>
+            </div>
+
+            <div class="comment-input-area">
+                <form action="/comment" method="POST">
+                    <input type="text" class="input-box" placeholder="Write a comment..." required>
+                    <button type="submit" class="btn-post">Post</button>
+                </form>
+            </div>
+
+        </aside>
+
+    </div>
+
+</body>
+</html>

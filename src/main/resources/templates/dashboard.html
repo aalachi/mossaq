@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -278,12 +278,12 @@
             <h2>Discover</h2>
         </header>
 
-        <article class="track-card">
+        <article class="track-card" th:each="track : ${tracks}">
             <div class="track-header">
                 <img src="https://via.placeholder.com/40" class="artist-avatar" alt="User">
                 <div class="track-info">
-                    <h3>Night Drive (Synthwave Mix)</h3>
-                    <span>By <strong>RetroBoy</strong> • 2 hours ago</span>
+                    <h3><a th:href="@{/track(uuid=${track.id})}" th:text="${track.title}">Track Title</a></h3>
+                    <span>By <strong th:text="${track.artist}">Artist</strong></span>
                 </div>
             </div>
 
@@ -294,40 +294,20 @@
                     <div class="bar"></div><div class="bar"></div><div class="bar"></div>
                     <div class="bar"></div><div class="bar"></div><div class="bar"></div>
                     <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-                    <div class="bar" style="background:var(--primary)"></div> </div>
+                    <div class="bar" style="background:var(--primary)"></div>
+                </div>
             </div>
 
             <div class="track-actions">
-                <button class="action-btn like">♥ 1.2k</button>
+                <button class="action-btn like">♥</button>
                 <button class="action-btn">💬 45</button>
                 <button class="action-btn">🔗 Share</button>
             </div>
         </article>
 
-        <article class="track-card">
-            <div class="track-header">
-                <img src="https://via.placeholder.com/40" class="artist-avatar" alt="User">
-                <div class="track-info">
-                    <h3>Deep Focus Lo-Fi</h3>
-                    <span>By <strong>ChillBeats</strong> • 5 hours ago</span>
-                </div>
-            </div>
-
-            <div class="audio-player-ui">
-                <button class="play-btn">▶</button>
-                <div class="waveform">
-                    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-                    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-                    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-                </div>
-            </div>
-
-            <div class="track-actions">
-                <button class="action-btn like">♥ 856</button>
-                <button class="action-btn">💬 12</button>
-                <button class="action-btn">🔗 Share</button>
-            </div>
-        </article>
+        <div th:if="${#lists.isEmpty(tracks)}" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+            <p>No tracks found. Upload one to get started!</p>
+        </div>
 
     </main>
 
@@ -336,9 +316,10 @@
         <div class="upload-box">
             <h4>Upload Music</h4>
             <p>Share your sound with the world.</p>
-            <form action="/upload" method="POST" enctype="multipart/form-data">
-                <input type="text" class="upload-input" placeholder="Track Title" required>
-                <input type="file" accept=".mp3,.wav" class="upload-input" style="padding: 5px;">
+            <form action="/track/upload" method="POST" enctype="multipart/form-data">
+                <input type="text" name="title" class="upload-input" placeholder="Track Title" required>
+                <input type="text" name="artist" class="upload-input" placeholder="Artist Name" required>
+                <input type="file" name="file" accept=".mp3,.wav" class="upload-input" style="padding: 5px;" required>
                 <button type="submit" class="btn-upload">Upload Track</button>
             </form>
         </div>
