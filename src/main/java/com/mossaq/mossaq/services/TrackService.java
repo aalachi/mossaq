@@ -48,4 +48,8 @@ public class TrackService {
     public Path getTrackPath(String filename) {
         return fileStorageLocation.resolve(filename);
     }
+
+    public List<Track> getTracksByArtist(String artist) {
+        return trackRepository.findByArtist(artist);
+    }
 }

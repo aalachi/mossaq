@@ -1,24 +1,27 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Join Mossaq | Sign Up</title>
+    <title>Register | Mossaq</title>
     <style>
-        /* Use the same CSS as above, included here for standalone usage */
+        /* --- GLOBAL MUSIC THEME (Same as Login) --- */
         :root {
-            --primary: #1db954; 
+            --primary: #1db954;
             --primary-hover: #1ed760;
             --text-main: #ffffff;
             --text-muted: #b3b3b3;
             --glass-bg: rgba(24, 24, 24, 0.85);
             --border-color: rgba(255, 255, 255, 0.1);
+            --error-color: #ff4b4b;
         }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
             font-family: 'Segoe UI', sans-serif;
             background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.8)), 
-                        url('https://t3.ftcdn.net/jpg/02/23/60/54/360_F_223605406_nGKtPp42ZRx4ZxvrcVeT3Ek6V5Uw4ETh.jpg'); /* Different background image for variety */
+                        url('https://t3.ftcdn.net/jpg/02/23/60/54/360_F_223605406_nGKtPp42ZRx4ZxvrcVeT3Ek6V5Uw4ETh.jpg');
             background-size: cover;
             background-position: center;
             height: 100vh;
@@ -27,67 +30,124 @@
             justify-content: center;
             color: var(--text-main);
         }
+
         .auth-card {
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
             width: 100%;
-            max-width: 450px; /* Slightly wider for more fields */
+            max-width: 400px;
             padding: 2.5rem;
             border-radius: 12px;
             border: 1px solid var(--border-color);
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             text-align: center;
         }
-        .brand { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; display: block; }
+
+        .brand {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
         .brand span { color: var(--primary); }
+
         h2 { font-size: 1.5rem; margin-bottom: 2rem; font-weight: 500; }
-        .input-group { margin-bottom: 1rem; text-align: left; }
-        label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+
+        .input-group { margin-bottom: 1.2rem; text-align: left; }
+        
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
         input {
-            width: 100%; padding: 0.8rem; border-radius: 4px; border: 1px solid #333;
-            background: #121212; color: white; font-size: 1rem; outline: none; transition: border-color 0.3s;
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 4px;
+            border: 1px solid #333;
+            background: #121212;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
         }
+
         input:focus { border-color: var(--primary); }
+
         .btn-submit {
-            width: 100%; padding: 0.9rem; margin-top: 1rem; border-radius: 50px; border: none;
-            background: var(--primary); color: black; font-weight: 700; font-size: 1rem;
-            cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: transform 0.2s, background 0.2s;
+            width: 100%;
+            padding: 0.9rem;
+            margin-top: 1rem;
+            border-radius: 50px;
+            border: none;
+            background: var(--primary);
+            color: black;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: transform 0.2s, background 0.2s;
         }
+
         .btn-submit:hover { background: var(--primary-hover); transform: scale(1.02); }
+
         .auth-footer { margin-top: 2rem; font-size: 0.9rem; color: var(--text-muted); }
         .auth-footer a { color: var(--text-main); text-decoration: none; font-weight: 600; }
         .auth-footer a:hover { text-decoration: underline; color: var(--primary); }
+
+        .alert-error {
+            color: var(--error-color);
+            background: rgba(255, 75, 75, 0.1);
+            border: 1px solid rgba(255, 75, 75, 0.2);
+            padding: 0.8rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            text-align: left;
+        }
     </style>
 </head>
 <body>
-
     <div class="auth-card">
         <div class="brand">Mossaq<span>.</span></div>
-        <h2>Start Your Journey</h2>
-        
+        <h2>Create Account</h2>
+
+        <!-- Error Messages -->
+        <div th:if="${param.error != null and param.error[0] == 'email'}" class="alert-error">
+            This email is already registered. Please use another one.
+        </div>
+        <div th:if="${param.error != null and param.error[0] == 'username'}" class="alert-error">
+            This username is already taken. Try a different one.
+        </div>
+        <div th:if="${param.error != null and param.error[0] == 'password'}" class="alert-error">
+            Password is too weak. It must be at least 8 characters long and include an uppercase letter, a lowercase letter, and a number.
+        </div>
+
         <form action="/register" method="POST">
             <div class="input-group">
-                <label>Artist / Stage Name</label>
-                <input type="text" name="stageName" placeholder="e.g. The Weeknd" required>
+                <label>Username</label>
+                <input type="text" name="username" placeholder="ProducerName" required>
             </div>
 
             <div class="input-group">
                 <label>Email Address</label>
-                <input type="email" name="email" placeholder="name@domain.com" required>
+                <input type="email" name="email" placeholder="producer@example.com" required>
             </div>
             
             <div class="input-group">
                 <label>Password</label>
-                <input type="password" name="password" placeholder="Create a strong password" required>
+                <input type="password" name="password" placeholder="••••••••" required>
             </div>
 
-            <button type="submit" class="btn-submit">Create Account</button>
+            <button type="submit" class="btn-submit">Sign Up</button>
         </form>
 
         <div class="auth-footer">
             <p>Already have an account? <a href="/login">Log In</a></p>
         </div>
     </div>
-
 </body>
 </html>
