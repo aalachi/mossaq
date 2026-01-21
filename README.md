@@ -6,15 +6,19 @@ Mossaq is a music library and streaming platform designed for everyone. Whether 
 
 ## 🚀 Features
 
-*   **High Quality Streaming**: Experience audio the way it was meant to be heard. No interruptions, just pure sound.
-*   **Easy Uploads**: Creators can drag and drop **.wav** and **.mp3** files directly to their profiles.
-*   **Global Reach**: Build your artist profile, gain followers, and get your music into ears around the world.
-*   **Creator Focused**: Manage your discography with ease.
+*   **User Authentication**: Secure registration and login functionality.
+*   **Music Dashboard**: Browse and listen to available tracks.
+*   **Audio Streaming**: Stream uploaded tracks directly in the browser.
+*   **Easy Uploads**: Upload audio files with metadata (Title, Artist).
+*   **Local Storage**: Files are securely stored on the server.
 
 ## 🛠️ Tech Stack
 
 *   **Java 25**
 *   **Spring Boot 4.0.1**
+*   **Spring Security**
+*   **Spring Data JPA**
+*   **PostgreSQL**
 *   **Thymeleaf** (Frontend Templating)
 *   **Spring Web MVC**
 *   **Maven**
@@ -24,22 +28,32 @@ Mossaq is a music library and streaming platform designed for everyone. Whether 
 ### Prerequisites
 
 *   Java 25 SDK installed.
+*   PostgreSQL database.
 
 ### Running the Application
 
 1.  Clone the repository.
 2.  Navigate to the project directory.
-3.  Run the application using the Maven wrapper:
+3.  Configure your database connection in `application.properties`.
+4.  Run the application using the Maven wrapper:
 
     ```bash
     ./mvnw spring-boot:run
     ```
 
-4.  Open your browser and navigate to:
+5.  Open your browser and navigate to:
 
     ```
     http://localhost:8080
     ```
+
+### 🧪 Sample Data
+
+You can populate the application with sample tracks using the included script:
+
+```bash
+./populate_tracks.sh
+```
 
 ## 📄 License
 
