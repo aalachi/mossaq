@@ -2,7 +2,6 @@ package com.mossaq.mossaq.services;
 
 import com.mossaq.mossaq.model.Track;
 import com.mossaq.mossaq.repository.TrackRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,7 +19,6 @@ public class TrackService {
     private final Path fileStorageLocation = Paths.get("uploads").toAbsolutePath().normalize();
     private final TrackRepository trackRepository;
 
-    @Autowired
     public TrackService(TrackRepository trackRepository) throws IOException {
         this.trackRepository = trackRepository;
         Files.createDirectories(this.fileStorageLocation);

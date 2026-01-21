@@ -1,7 +1,6 @@
 package com.mossaq.mossaq.controllers;
 
 import com.mossaq.mossaq.services.TrackService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
@@ -23,7 +22,6 @@ public class TrackController {
 
     private final TrackService trackService;
 
-    @Autowired
     public TrackController(TrackService trackService) {
         this.trackService = trackService;
     }

@@ -17,6 +17,9 @@ public class Track {
     private String contentType;
     private String audioFilePath;
     private String imageFilePath;
+    private int playCount;
+    private int likeCount;
+
 
     public Track() {
     }
@@ -27,6 +30,8 @@ public class Track {
         this.artist = artist;
         this.filename = filename;
         this.contentType = contentType;
+        this.playCount = 0;
+        this.likeCount = 0;
     }
 
     public UUID getId() {
@@ -72,4 +77,21 @@ public class Track {
     public void setImageFilePath(String imageFilePath) {
         this.imageFilePath = imageFilePath;
     }
+
+    public int getPlayCount() {
+        return playCount;
+    }
+
+    public void setPlayCount(int playCount) {
+        this.playCount = playCount;
+    }
+
+    public int getLikeCount() {
+        return likeCount;
+    }
+
+    public void setLikeCount(int likeCount) {
+        this.likeCount = likeCount;
+    }
+
 }
