@@ -113,6 +113,14 @@
             display: flex;
             align-items: center;
             margin-bottom: 1rem;
+            gap: 1rem;
+        }
+
+        .player-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
         .play-btn {
@@ -125,18 +133,20 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 1rem;
             font-size: 1.2rem;
             transition: transform 0.2s;
+            flex-shrink: 0;
         }
         .play-btn:hover { transform: scale(1.1); }
 
         .waveform {
-            flex: 1;
+            width: 100%;
             height: 30px;
             display: flex;
             align-items: center;
             gap: 2px;
+            overflow: hidden;
+            margin-bottom: 8px;
         }
         .bar { width: 4px; background: var(--text-muted); border-radius: 2px; }
         /* Fake waveform heights for visuals */
@@ -144,6 +154,41 @@
         .bar:nth-child(even) { height: 25px; }
         .bar:nth-child(3n) { height: 10px; }
         
+        /* Seek Bar & Time */
+        .seek-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .time-text {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+            min-width: 35px;
+        }
+
+        .seek-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+        .seek-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 10px;
+            height: 10px;
+            background: var(--text-main);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .seek-slider::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
         .track-actions {
             display: flex;
             gap: 1.5rem;
@@ -234,6 +279,18 @@
             border-radius: 4px;
         }
 
+        /* Dynamic Waveform Animation */
+        .audio-player-ui.playing .bar {
+            animation-name: sound-wave;
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+            animation-direction: alternate;
+        }
+        @keyframes sound-wave {
+            0% { height: 4px; opacity: 0.6; }
+            100% { height: 28px; opacity: 1; }
+        }
+
         /* Responsive */
         @media (max-width: 1000px) {
             .app-container { grid-template-columns: 80px 1fr 0px; } /* Hide Right sidebar on tablet */
@@ -288,14 +345,19 @@
             </div>
 
             <div class="audio-player-ui">
-                <button class="play-btn">▶</button>
-                <div class="waveform">
-                    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-                    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-                    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-                    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-                    <div class="bar" style="background:var(--primary)"></div>
+                <button class="play-btn" th:data-track-id="${track.id}" onclick="togglePlay(this, this.getAttribute('data-track-id'))">▶</button>
+                <div class="player-body">
+                    <div class="waveform">
+                        <!-- Generate 200 bars dynamically to fill the width -->
+                        <div class="bar" th:each="i : ${#numbers.sequence(0, 200)}" th:style="|animation-duration: 0.${(i % 6) + 4}s; animation-delay: -0.${i % 9}s|"></div>
+                    </div>
+                    <div class="seek-wrapper">
+                        <span class="time-text current">0:00</span>
+                        <input type="range" class="seek-slider" value="0" step="0.1" oninput="seekAudio(this)">
+                        <span class="time-text total">--:--</span>
+                    </div>
                 </div>
+                <audio th:id="'audio-' + ${track.id}" th:src="@{'/track/' + ${track.id} + '/stream'}" onended="resetPlayerUI(this)" ontimeupdate="updateProgress(this)" onloadedmetadata="initAudio(this)"></audio>
             </div>
 
             <div class="track-actions">
@@ -356,5 +418,83 @@
 
 </div>
 
+<script>
+    let currentAudio = null;
+    let currentBtn = null;
+    let currentContainer = null;
+
+    function togglePlay(btn, trackId) {
+        const audio = document.getElementById('audio-' + trackId);
+        const container = btn.closest('.audio-player-ui');
+
+        // If clicking a different track, pause the current one
+        if (currentAudio && currentAudio !== audio) {
+            currentAudio.pause();
+            currentBtn.innerText = '▶';
+            currentContainer.classList.remove('playing');
+        }
+
+        if (audio.paused) {
+            audio.play();
+            btn.innerText = '⏸';
+            container.classList.add('playing');
+            currentAudio = audio;
+            currentBtn = btn;
+            currentContainer = container;
+        } else {
+            audio.pause();
+            btn.innerText = '▶';
+            container.classList.remove('playing');
+            currentAudio = null;
+            currentBtn = null;
+            currentContainer = null;
+        }
+    }
+
+    function resetPlayerUI(audio) {
+        const container = audio.closest('.audio-player-ui');
+        const btn = container.querySelector('.play-btn');
+        
+        btn.innerText = '▶';
+        container.classList.remove('playing');
+        
+        if (currentAudio === audio) {
+            currentAudio = null;
+            currentBtn = null;
+            currentContainer = null;
+        }
+    }
+
+    function initAudio(audio) {
+        const container = audio.closest('.audio-player-ui');
+        const slider = container.querySelector('.seek-slider');
+        const totalTimeEl = container.querySelector('.time-text.total');
+        
+        slider.max = audio.duration;
+        totalTimeEl.innerText = formatTime(audio.duration);
+    }
+
+    function updateProgress(audio) {
+        const container = audio.closest('.audio-player-ui');
+        const slider = container.querySelector('.seek-slider');
+        const currentTimeEl = container.querySelector('.time-text.current');
+        
+        slider.value = audio.currentTime;
+        currentTimeEl.innerText = formatTime(audio.currentTime);
+    }
+
+    function seekAudio(slider) {
+        const container = slider.closest('.audio-player-ui');
+        const audio = container.querySelector('audio');
+        audio.currentTime = slider.value;
+    }
+
+    function formatTime(seconds) {
+        if (!seconds || isNaN(seconds)) return "0:00";
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+</script>
 </body>
 </html>
