@@ -84,6 +84,7 @@
             padding: 1.5rem;
             margin-bottom: 1.5rem;
             transition: background 0.3s;
+            cursor: pointer;
         }
         .track-card:hover { background-color: var(--bg-hover); }
 
@@ -291,6 +292,36 @@
             100% { height: 28px; opacity: 1; }
         }
 
+        /* --- COMMENT SECTION --- */
+        .comment-box {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            display: none; /* Hidden by default */
+        }
+        .comment-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+        .comment-input {
+            flex: 1;
+            background: #121212;
+            border: 1px solid #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .btn-comment {
+            background: var(--primary);
+            color: black;
+            border: none;
+            padding: 0 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
         /* Responsive */
         @media (max-width: 1000px) {
             .app-container { grid-template-columns: 80px 1fr 0px; } /* Hide Right sidebar on tablet */
@@ -335,9 +366,9 @@
             <h2>Discover</h2>
         </header>
 
-        <article class="track-card" th:each="track : ${tracks}">
+        <article class="track-card" th:each="track : ${tracks}" th:data-track-id="${track.id}" onclick="openTrackPage(event, this.getAttribute('data-track-id'))">
             <div class="track-header">
-                <img src="https://via.placeholder.com/40" class="artist-avatar" alt="User">
+                <img th:src="@{'/track/' + ${track.id} + '/art'}" class="artist-avatar" alt="Cover" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMzMzIi8+PC9zdmc+'">
                 <div class="track-info">
                     <h3><a th:href="@{/track(uuid=${track.id})}" th:text="${track.title}">Track Title</a></h3>
                     <span>By <strong th:text="${track.artist}">Artist</strong></span>
@@ -361,9 +392,16 @@
             </div>
 
             <div class="track-actions">
-                <button class="action-btn like">♥ <span th:text="${track.likeCount}">90</span></button>
-                <button class="action-btn">💬 45</button>
+                <button class="action-btn like" th:data-track-id="${track.id}" onclick="toggleLike(this, this.getAttribute('data-track-id'))">♥ <span th:text="${track.likeCount}">90</span></button>
+                <button class="action-btn" th:data-track-id="${track.id}" onclick="toggleComments(this.getAttribute('data-track-id'))">💬 <span th:text="${track.commentCount}">45</span></button>
                 <button class="action-btn">🔗 Share</button>
+            </div>
+
+            <div th:id="'comments-' + ${track.id}" class="comment-box">
+                <form th:action="@{'/track/' + ${track.id} + '/comment'}" method="post" class="comment-form">
+                    <input type="text" name="content" class="comment-input" placeholder="Add a comment..." required>
+                    <button type="submit" class="btn-comment">Post</button>
+                </form>
             </div>
         </article>
 
@@ -382,6 +420,7 @@
                 <input type="text" name="title" class="upload-input" placeholder="Track Title" required>
                 <input type="text" name="artist" class="upload-input" placeholder="Artist Name" required>
                 <input type="file" name="file" accept=".mp3,.wav" class="upload-input" style="padding: 5px;" required>
+                <input type="file" name="image" accept="image/*" class="upload-input" style="padding: 5px;">
                 <button type="submit" class="btn-upload">Upload Track</button>
             </form>
         </div>
@@ -423,7 +462,7 @@
     let currentBtn = null;
     let currentContainer = null;
 
-    function togglePlay(btn, trackId) {
+        window.togglePlay = function(btn, trackId) {
         const audio = document.getElementById('audio-' + trackId);
         const container = btn.closest('.audio-player-ui');
 
@@ -449,9 +488,9 @@
             currentBtn = null;
             currentContainer = null;
         }
-    }
+        };
 
-    function resetPlayerUI(audio) {
+        window.resetPlayerUI = function(audio) {
         const container = audio.closest('.audio-player-ui');
         const btn = container.querySelector('.play-btn');
         
@@ -494,6 +533,42 @@
         const m = Math.floor(seconds / 60);
         const s = Math.floor(seconds % 60);
         return `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    function toggleComments(trackId) {
+        const section = document.getElementById('comments-' + trackId);
+        if (section.style.display === 'block') {
+            section.style.display = 'none';
+        } else {
+            section.style.display = 'block';
+        }
+    }
+
+    function toggleLike(btn, trackId) {
+        fetch('/track/' + trackId + '/like', {
+            method: 'POST'
+        })
+        .then(response => {
+            if (response.ok) return response.json();
+            throw new Error('Network response was not ok.');
+        })
+        .then(data => {
+            btn.querySelector('span').innerText = data.count;
+            if (data.liked) {
+                btn.style.color = '#e91e63';
+            } else {
+                btn.style.color = '';
+            }
+        })
+        .catch(error => console.error('Error liking track:', error));
+    }
+
+    function openTrackPage(event, trackId) {
+        // Prevent navigation if clicking on interactive elements
+        if (event.target.closest('button, a, input, .seek-slider')) return;
+        if (window.getSelection().toString().length > 0) return;
+
+        window.location.href = '/track?uuid=' + trackId;
     }
 </script>
 </body>

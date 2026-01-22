@@ -218,7 +218,7 @@
             </div>
 
             <div class="controls-row">
-                <button class="btn-action primary">♥ Like</button>
+                <button class="btn-action primary" th:data-track-id="${track.id}" onclick="toggleLike(this, this.getAttribute('data-track-id'))">♥ Like <span th:text="${track.likeCount}" style="margin-left: 5px;">0</span></button>
                 <button class="btn-action">➕ Add to Playlist</button>
                 <button class="btn-action">🔗 Share</button>
                 <a href="/main" class="btn-action" style="background:transparent; border:1px solid #555;">&larr; Back</a>
@@ -237,36 +237,23 @@
                 <button style="margin-left:auto; background:transparent; color:var(--primary); border:1px solid var(--primary); padding:4px 10px; border-radius:12px; cursor:pointer;">Follow</button>
             </div>
 
-            <div class="section-title">Comments (24)</div>
+            <div class="section-title">Comments (<span th:text="${track.commentCount}">0</span>)</div>
             <div class="comment-list">
-                <div class="comment">
+                <div class="comment" th:each="comment : ${track.comments}">
                     <div class="comment-header">
-                        <span class="user-name">NeonRider</span>
-                        <span class="timestamp">2h ago</span>
+                        <span class="user-name" th:text="${comment.author}">User</span>
+                        <span class="timestamp" th:text="${comment.timeAgo}">Date</span>
                     </div>
-                    <div class="comment-body">This drop is insane! 🔥 Adding this to my night drive playlist immediately.</div>
+                    <div class="comment-body" th:text="${comment.content}">Content</div>
                 </div>
-
-                <div class="comment">
-                    <div class="comment-header">
-                        <span class="user-name">SarahDev</span>
-                        <span class="timestamp">5h ago</span>
-                    </div>
-                    <div class="comment-body">The mixing on the vocals is so clean. What reverb did you use?</div>
-                </div>
-                
-                <div class="comment">
-                    <div class="comment-header">
-                        <span class="user-name">ProducerMike</span>
-                        <span class="timestamp">1d ago</span>
-                    </div>
-                    <div class="comment-body">Keep up the good work man, huge inspiration.</div>
+                <div th:if="${#lists.isEmpty(track.comments)}" style="color: var(--text-muted); font-style: italic; padding: 1rem 0;">
+                    No comments yet. Be the first to share your thoughts!
                 </div>
             </div>
 
             <div class="comment-input-area">
-                <form action="/comment" method="POST">
-                    <input type="text" class="input-box" placeholder="Write a comment..." required>
+                <form th:action="@{'/track/' + ${track.id} + '/comment'}" method="POST">
+                    <input type="text" name="content" class="input-box" placeholder="Write a comment..." required>
                     <button type="submit" class="btn-post">Post</button>
                 </form>
             </div>
@@ -275,5 +262,25 @@
 
     </div>
 
+<script>
+    function toggleLike(btn, trackId) {
+        fetch('/track/' + trackId + '/like', {
+            method: 'POST'
+        })
+        .then(response => {
+            if (response.ok) return response.json();
+            throw new Error('Network response was not ok.');
+        })
+        .then(data => {
+            btn.querySelector('span').innerText = data.count;
+            if (data.liked) {
+                btn.style.color = '#e91e63';
+            } else {
+                btn.style.color = '';
+            }
+        })
+        .catch(error => console.error('Error liking track:', error));
+    }
+</script>
 </body>
 </html>
