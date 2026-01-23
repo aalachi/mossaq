@@ -1,0 +1,1 @@
+review the readme.md and the codebase to get a context of what was built and get ready to help me add more features
