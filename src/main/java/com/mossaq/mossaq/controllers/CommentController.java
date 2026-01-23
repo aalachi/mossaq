@@ -36,6 +36,6 @@ public class CommentController {
         Comment comment = new Comment(content, author, trackId);
         comment.setTimestamp(System.currentTimeMillis());
         commentRepository.save(comment);
-        return "redirect:/main";
+        return "redirect:/track?uuid=" + trackId;
     }
 }

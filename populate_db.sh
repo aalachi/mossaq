@@ -1,18 +1,21 @@
 #!/bin/bash
 
 # Mossaq Database Population Script
-# Creates users, uploads tracks, and adds comments.
+# Creates users, inserts tracks directly to DB/FS, and adds comments.
 
 APP_URL="http://localhost:8080"
-UPLOAD_ENDPOINT="$APP_URL/track/upload"
 DB_NAME="mossaq"
 DB_USER="mossaq_user"
 DB_PASS="mossaq_password"
+UPLOADS_DIR="$(pwd)/uploads"
 
 # Colors
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
+
+# Ensure uploads directory exists
+mkdir -p "$UPLOADS_DIR"
 
 # Execution Helper: Check for psql or Docker
 EXEC_METHOD="none"
@@ -42,10 +45,10 @@ run_sql() {
     local sql="$1"
     if [ "$EXEC_METHOD" == "local" ]; then
         export PGPASSWORD=$DB_PASS
-        psql -h localhost -U $DB_USER -d $DB_NAME -c "$sql"
+        psql -h localhost -U $DB_USER -d $DB_NAME -c "$sql" > /dev/null
     else
         # Docker execution
-        docker exec -i "$DB_CONTAINER" psql -U $DB_USER -d $DB_NAME -c "$sql"
+        docker exec -i "$DB_CONTAINER" psql -U $DB_USER -d $DB_NAME -c "$sql" > /dev/null
     fi
 }
 
@@ -71,7 +74,15 @@ INSERT INTO users (uuid, email, password, username, role) VALUES
 ON CONFLICT (email) DO NOTHING;
 "
 
-# 2. Upload Tracks
+# Get Alice's UUID for track ownership
+if [ "$EXEC_METHOD" == "local" ]; then
+    export PGPASSWORD=$DB_PASS
+    USER_ID=$(psql -h localhost -U $DB_USER -d $DB_NAME -t -c "SELECT uuid FROM users WHERE email='alice@mossaq.com';" | xargs)
+else
+    USER_ID=$(docker exec -i "$DB_CONTAINER" psql -U $DB_USER -d $DB_NAME -t -c "SELECT uuid FROM users WHERE email='alice@mossaq.com';" | tr -d '\r' | xargs)
+fi
+
+# 2. Upload Tracks (Direct DB Insert)
 upload_track() {
     local title="$1"
     local artist="$2"
@@ -82,9 +93,21 @@ upload_track() {
     curl -L -o "$filename" "$url" --silent
 
     if [ -f "$filename" ]; then
-        echo "Uploading $title..."
-        curl -u "alice@mossaq.com:password" -X POST -F "title=$title" -F "artist=$artist" -F "file=@$filename" -F "image=@cover.jpg" "$UPLOAD_ENDPOINT" -s -o /dev/null
-        rm "$filename"
+        echo "Processing $title..."
+        
+        # Prepare files
+        local timestamp=$(date +%s)
+        local stored_audio="${timestamp}_${filename}"
+        local stored_image="${timestamp}_cover.jpg"
+        
+        # Move/Copy to uploads dir
+        mv "$filename" "$UPLOADS_DIR/$stored_audio"
+        cp "cover.jpg" "$UPLOADS_DIR/$stored_image"
+        
+        local abs_audio_path="$UPLOADS_DIR/$stored_audio"
+        
+        # Insert DB Record
+        run_sql "INSERT INTO tracks (id, title, artist, user_id, filename, content_type, audio_file_path, image_file_path, play_count, like_count) VALUES (gen_random_uuid(), '$title', 'Alice', '$USER_ID', '$stored_audio', 'audio/mpeg', '$abs_audio_path', '$stored_image', 0, 0);"
     else
         echo -e "${RED}Failed to download $filename${NC}"
     fi

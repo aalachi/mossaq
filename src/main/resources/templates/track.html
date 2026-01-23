@@ -219,7 +219,7 @@
 
             <div class="controls-row">
                 <button class="btn-action primary" th:data-track-id="${track.id}" onclick="toggleLike(this, this.getAttribute('data-track-id'))">♥ Like <span th:text="${track.likeCount}" style="margin-left: 5px;">0</span></button>
-                <button class="btn-action">➕ Add to Playlist</button>
+                <button class="btn-action" th:data-track-id="${track.id}" onclick="addToPlaylist(this, this.getAttribute('data-track-id'))" th:text="${inPlaylist} ? '✔️ Added' : '➕ Add to Playlist'" th:disabled="${inPlaylist}">➕ Add to Playlist</button>
                 <button class="btn-action">🔗 Share</button>
                 <a href="/main" class="btn-action" style="background:transparent; border:1px solid #555;">&larr; Back</a>
             </div>
@@ -280,6 +280,22 @@
             }
         })
         .catch(error => console.error('Error liking track:', error));
+    }
+
+    function addToPlaylist(btn, trackId) {
+        fetch('/track/' + trackId + '/playlist', {
+            method: 'POST'
+        })
+        .then(response => {
+            if (response.ok) {
+                btn.innerText = '✔️ Added';
+                btn.disabled = true;
+            } else {
+                console.error('Failed to add to playlist');
+                alert('Could not add to playlist. Please try again.');
+            }
+        })
+        .catch(error => console.error('Error adding to playlist:', error));
     }
 </script>
 </body>
