@@ -29,7 +29,7 @@ public class TrackController {
         this.trackService = trackService;
     }
 
-    @GetMapping({"/", "/main"})
+    @GetMapping("/main")
     public String dashboard(Model model) {
         model.addAttribute("tracks", trackService.getAllTracks());
         return "dashboard";
