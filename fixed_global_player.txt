@@ -1,0 +1,11 @@
+To solve the problem of the audio player disappearing or resetting when you navigate between pages, we need to prevent the browser from performing a full page reload. In a traditional Spring Boot application, clicking a link destroys the current page (stopping the audio) and loads a new one.
+
+While Spring is a server-side framework, we can use HTMX, a lightweight JavaScript library that integrates perfectly with Spring and Thymeleaf. HTMX allows us to replace only specific parts of the page (like the main content area) while keeping the rest (like the Sidebar and your Global Player) intact and persistent.
+
+Here is the detailed solution:
+
+Add HTMX: We include the library in dashboard.html.
+Define Fragments: We mark the main content area of each page (dashboard, profile, settings, track) as a Thymeleaf fragment.
+Update Navigation: We change the sidebar links to use hx-get instead of href. This tells HTMX to fetch the content via AJAX and swap it into the main area.
+Update Controllers: We modify the Spring Controllers to detect HTMX requests. If it's an HTMX request, we return only the content fragment. If it's a normal request (refresh), we return the full page.
+Move Player: We ensure the global-player is outside the dynamic content area so it is never replaced.
