@@ -339,7 +339,7 @@
         <div class="logo">Mossaq<span>.</span></div>
         <ul class="nav-menu">
             <li class="nav-item">
-                <a href="/main" class="nav-link active">
+                <a th:href="@{/main}" class="nav-link" th:classappend="${activeTab == 'home' or activeTab == null} ? 'active'">
                     <span class="nav-icon">🏠</span> <span class="nav-text">Home</span>
                 </a>
             </li>

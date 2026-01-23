@@ -54,12 +54,11 @@ public class TrackController {
     public String uploadTrack(@RequestParam("file") MultipartFile file,
                               @RequestParam(value = "image", required = false) MultipartFile image,
                               @RequestParam("title") String title,
-                              Model model,
-                              Principal principal) throws IOException {
-        String userEmail = (principal != null) ? principal.getName() : null;
-        trackService.uploadTrack(file, image, title, userEmail);
+                              java.security.Principal principal,
+                              Model model) throws IOException {
+        trackService.uploadTrack(file, image, title, principal.getName());
         model.addAttribute("message", "Track uploaded successfully!");
-        return "redirect:/main";
+        return "redirect:/profile";
     }
 
     @GetMapping("/track/{id}/stream")
