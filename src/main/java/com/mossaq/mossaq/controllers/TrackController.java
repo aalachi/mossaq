@@ -54,21 +54,12 @@ public class TrackController {
     public String uploadTrack(@RequestParam("file") MultipartFile file,
                               @RequestParam(value = "image", required = false) MultipartFile image,
                               @RequestParam("title") String title,
-<<<<<<< HEAD
-                              @RequestParam("artist") String artist,
-                              java.security.Principal principal,
-                              Model model) throws IOException {
-        trackService.uploadTrack(file, image, title, artist, principal.getName());
-        model.addAttribute("message", "Track uploaded successfully!");
-        return "redirect:/profile";
-=======
                               Model model,
                               Principal principal) throws IOException {
         String userEmail = (principal != null) ? principal.getName() : null;
         trackService.uploadTrack(file, image, title, userEmail);
         model.addAttribute("message", "Track uploaded successfully!");
         return "redirect:/main";
->>>>>>> e7620ccbe5f892db909569fde751a909398174db
     }
 
     @GetMapping("/track/{id}/stream")
@@ -126,12 +117,12 @@ public class TrackController {
         return ResponseEntity.ok(result);
     }
 
-<<<<<<< HEAD
     @PostMapping("/track/{id}/delete")
     public String deleteTrack(@PathVariable java.util.UUID id, java.security.Principal principal) throws IOException {
         trackService.deleteTrack(id, principal.getName());
         return "redirect:/profile";
-=======
+    }
+
     @GetMapping("/library")
     public String library(Model model, Principal principal) {
         if (principal != null) {
@@ -149,6 +140,5 @@ public class TrackController {
         if (principal == null) return ResponseEntity.status(401).build();
         boolean success = trackService.addToPlaylist(id, principal.getName());
         return success ? ResponseEntity.ok().build() : ResponseEntity.badRequest().build();
->>>>>>> e7620ccbe5f892db909569fde751a909398174db
     }
 }

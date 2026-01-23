@@ -41,11 +41,7 @@ public class TrackService {
         Files.createDirectories(this.fileStorageLocation);
     }
 
-<<<<<<< HEAD
-    public Track uploadTrack(MultipartFile file, MultipartFile image, String title, String artist, String userEmail) throws IOException {
-=======
     public Track uploadTrack(MultipartFile file, MultipartFile image, String title, String userEmail) throws IOException {
->>>>>>> e7620ccbe5f892db909569fde751a909398174db
         var fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
         var targetLocation = this.fileStorageLocation.resolve(fileName);
         Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
@@ -57,12 +53,6 @@ public class TrackService {
             Files.copy(image.getInputStream(), imageTarget, StandardCopyOption.REPLACE_EXISTING);
         }
 
-<<<<<<< HEAD
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        var newTrack = new Track(title, artist, user.getUuid().toString(), fileName, file.getContentType(), targetLocation.toString(), imageFileName);
-=======
         String userId = "Anonymous";
         String artist = "Anonymous";
         if (userEmail != null) {
@@ -74,7 +64,6 @@ public class TrackService {
             }
         }
         var newTrack = new Track(title, artist, userId, fileName, file.getContentType(), targetLocation.toString(), imageFileName);
->>>>>>> e7620ccbe5f892db909569fde751a909398174db
         return trackRepository.save(newTrack);
     }
 
@@ -129,7 +118,6 @@ public class TrackService {
         return result;
     }
 
-<<<<<<< HEAD
     public List<Track> getTracksByUserId(String userId) {
         return trackRepository.findAll().stream()
                 .filter(track -> userId.equals(track.getUserId()))
@@ -149,7 +137,8 @@ public class TrackService {
             Files.deleteIfExists(fileStorageLocation.resolve(track.getImageFilePath()));
         }
         trackRepository.delete(track);
-=======
+    }
+
     public List<Track> getTracksByUserEmail(String email) {
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
@@ -188,6 +177,5 @@ public class TrackService {
         if (userOpt.isEmpty()) return false;
         User user = userOpt.get();
         return playlistTrackRepository.findByUserIdAndTrackId(user.getUuid(), trackId).isPresent();
->>>>>>> e7620ccbe5f892db909569fde751a909398174db
     }
 }
