@@ -137,6 +137,14 @@ public class TrackService {
         trackRepository.delete(track);
     }
 
+    public void deleteAllTracksByUser(String userEmail) throws IOException {
+        User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        List<Track> tracks = getTracksByUserId(user.getUuid().toString());
+        for (Track track : tracks) {
+            deleteTrack(track.getId(), userEmail);
+        }
+    }
+
     public List<Track> getTracksByUserEmail(String email) {
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {

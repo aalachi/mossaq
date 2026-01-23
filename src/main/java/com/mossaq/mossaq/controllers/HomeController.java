@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -91,6 +92,7 @@ public class HomeController {
         model.addAttribute("username", user.getUsername());
         model.addAttribute("bio", user.getBio());
         model.addAttribute("avatar", user.getAvatarFilename());
+        model.addAttribute("emailNotifications", user.isEmailNotifications());
         return "settings";
     }
 
@@ -98,9 +100,10 @@ public class HomeController {
     public String updateSettings(@RequestParam String username, @RequestParam String email, 
                                  @RequestParam(required = false) String password, 
                                  @RequestParam(required = false) String bio,
+                                 @RequestParam(defaultValue = "false") boolean emailNotifications,
                                  @RequestParam(required = false) MultipartFile avatar,
                                  Principal principal) throws IOException {
-        userService.updateUser(principal.getName(), username, email, password, bio, avatar);
+        userService.updateUser(principal.getName(), username, email, password, bio, emailNotifications, avatar);
         // Si l'email change, il faudrait techniquement déconnecter l'utilisateur, mais restons simples.
         return "redirect:/profile";
     }
@@ -109,6 +112,18 @@ public class HomeController {
     public String deleteAvatar(Principal principal) throws IOException {
         userService.deleteAvatar(principal.getName());
         return "redirect:/settings";
+    }
+
+    @PostMapping("/settings/delete-account")
+    public String deleteAccount(Principal principal, HttpServletRequest request) throws IOException {
+        String email = principal.getName();
+        // 1. Delete all tracks (files + db)
+        trackService.deleteAllTracksByUser(email);
+        // 2. Delete user (avatar + db)
+        userService.deleteUser(email);
+        // 3. Logout
+        try { request.logout(); } catch (Exception e) {}
+        return "redirect:/login?deleted";
     }
 
     @GetMapping("/avatar/{filename:.+}")

@@ -31,6 +31,9 @@ public class User {
     @Column
     private String avatarFilename;
 
+    @Column(nullable = false)
+    private boolean emailNotifications = true;
+
     public User() {}
 
     public User(String email, String password, String role) {
@@ -62,4 +65,7 @@ public class User {
 
     public String getAvatarFilename() { return avatarFilename; }
     public void setAvatarFilename(String avatarFilename) { this.avatarFilename = avatarFilename; }
+
+    public boolean isEmailNotifications() { return emailNotifications; }
+    public void setEmailNotifications(boolean emailNotifications) { this.emailNotifications = emailNotifications; }
 }

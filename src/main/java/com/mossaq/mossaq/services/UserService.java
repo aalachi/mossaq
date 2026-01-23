@@ -64,7 +64,7 @@ public class UserService implements UserDetailsService {
         userRepository.save(user);
     }
 
-    public void updateUser(String currentEmail, String newUsername, String newEmail, String newPassword, String newBio, MultipartFile avatar) throws IOException {
+    public void updateUser(String currentEmail, String newUsername, String newEmail, String newPassword, String newBio, boolean emailNotifications, MultipartFile avatar) throws IOException {
         User user = userRepository.findByEmail(currentEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
@@ -78,6 +78,7 @@ public class UserService implements UserDetailsService {
         user.setUsername(newUsername);
         user.setEmail(newEmail);
         user.setBio(newBio);
+        user.setEmailNotifications(emailNotifications);
 
         if (avatar != null && !avatar.isEmpty()) {
             // Delete old avatar if exists
@@ -104,5 +105,13 @@ public class UserService implements UserDetailsService {
             user.setAvatarFilename(null);
             userRepository.save(user);
         }
+    }
+
+    public void deleteUser(String email) throws IOException {
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        if (user.getAvatarFilename() != null) {
+            Files.deleteIfExists(this.fileStorageLocation.resolve(user.getAvatarFilename()));
+        }
+        userRepository.delete(user);
     }
 }
