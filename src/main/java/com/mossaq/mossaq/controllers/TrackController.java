@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
+import java.security.Principal;
 
 @Controller
 public class TrackController {
@@ -29,9 +30,16 @@ public class TrackController {
     }
 
     @GetMapping("/track")
-    public String track(@RequestParam(value = "uuid", required = false) java.util.UUID uuid, Model model) {
+    public String track(@RequestParam(value = "uuid", required = false) java.util.UUID uuid, Model model, Principal principal) {
         if (uuid != null) {
-            trackService.getTrackById(uuid).ifPresent(track -> model.addAttribute("track", track));
+            trackService.getTrackById(uuid).ifPresent(track -> {
+                model.addAttribute("track", track);
+                if (principal != null) {
+                    model.addAttribute("inPlaylist", trackService.isTrackInPlaylist(uuid, principal.getName()));
+                } else {
+                    model.addAttribute("inPlaylist", false);
+                }
+            });
         }
         return "track";
     }
@@ -40,11 +48,12 @@ public class TrackController {
     public String uploadTrack(@RequestParam("file") MultipartFile file,
                               @RequestParam(value = "image", required = false) MultipartFile image,
                               @RequestParam("title") String title,
-                              @RequestParam("artist") String artist,
-                              Model model) throws IOException {
-        trackService.uploadTrack(file, image, title, artist);
+                              Model model,
+                              Principal principal) throws IOException {
+        String userEmail = (principal != null) ? principal.getName() : null;
+        trackService.uploadTrack(file, image, title, userEmail);
         model.addAttribute("message", "Track uploaded successfully!");
-        return "track";
+        return "redirect:/main";
     }
 
     @GetMapping("/track/{id}/stream")
@@ -100,5 +109,24 @@ public class TrackController {
         java.util.Map<String, Object> result = trackService.likeTrack(id, principal.getName());
         if (result == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/library")
+    public String library(Model model, Principal principal) {
+        if (principal != null) {
+            model.addAttribute("tracks", trackService.getPlaylistTracks(principal.getName()));
+        } else {
+            model.addAttribute("tracks", java.util.Collections.emptyList());
+        }
+        model.addAttribute("sectionTitle", "My Playlist");
+        model.addAttribute("activeTab", "library");
+        return "dashboard";
+    }
+
+    @PostMapping("/track/{id}/playlist")
+    public ResponseEntity<Void> addToPlaylist(@PathVariable java.util.UUID id, java.security.Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
+        boolean success = trackService.addToPlaylist(id, principal.getName());
+        return success ? ResponseEntity.ok().build() : ResponseEntity.badRequest().build();
     }
 }

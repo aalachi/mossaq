@@ -25,6 +25,7 @@ public class Track {
     private String imageFilePath;
     private Integer playCount = 0;
     private Integer likeCount = 0;
+    private Long uploadedAt;
     
     @OneToMany(fetch = FetchType.LAZY)
     @JoinColumn(name = "trackId", insertable = false, updatable = false)
@@ -43,6 +44,7 @@ public class Track {
         this.contentType = contentType;
         this.audioFilePath = audioFilePath;
         this.imageFilePath = imageFilePath;
+        this.uploadedAt = System.currentTimeMillis();
     }
 
     public UUID getId() {
@@ -123,6 +125,14 @@ public class Track {
     
     public int getCommentCount() {
         return comments != null ? comments.size() : 0;
+    }
+
+    public Long getUploadedAt() {
+        return uploadedAt;
+    }
+
+    public void setUploadedAt(Long uploadedAt) {
+        this.uploadedAt = uploadedAt;
     }
 
 }

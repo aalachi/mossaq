@@ -1,8 +1,10 @@
 package com.mossaq.mossaq.services;
 
+import com.mossaq.mossaq.model.PlaylistTrack;
 import com.mossaq.mossaq.model.Track;
 import com.mossaq.mossaq.model.TrackLike;
 import com.mossaq.mossaq.model.User;
+import com.mossaq.mossaq.repository.PlaylistTrackRepository;
 import com.mossaq.mossaq.repository.TrackRepository;
 import com.mossaq.mossaq.repository.TrackLikeRepository;
 import com.mossaq.mossaq.repository.UserRepository;
@@ -16,6 +18,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Optional;
+import java.util.Collections;
+import java.util.stream.Collectors;
 
 @Service
 public class TrackService {
@@ -24,17 +28,20 @@ public class TrackService {
     private final TrackRepository trackRepository;
     private final UserRepository userRepository;
     private final TrackLikeRepository trackLikeRepository;
+    private final PlaylistTrackRepository playlistTrackRepository;
 
     public TrackService(TrackRepository trackRepository, 
                         UserRepository userRepository,
-                        TrackLikeRepository trackLikeRepository) throws IOException {
+                        TrackLikeRepository trackLikeRepository,
+                        PlaylistTrackRepository playlistTrackRepository) throws IOException {
         this.trackRepository = trackRepository;
         this.userRepository = userRepository;
         this.trackLikeRepository = trackLikeRepository;
+        this.playlistTrackRepository = playlistTrackRepository;
         Files.createDirectories(this.fileStorageLocation);
     }
 
-    public Track uploadTrack(MultipartFile file, MultipartFile image, String title, String artist) throws IOException {
+    public Track uploadTrack(MultipartFile file, MultipartFile image, String title, String userEmail) throws IOException {
         var fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
         var targetLocation = this.fileStorageLocation.resolve(fileName);
         Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
@@ -46,8 +53,17 @@ public class TrackService {
             Files.copy(image.getInputStream(), imageTarget, StandardCopyOption.REPLACE_EXISTING);
         }
 
-        // Using "Anonymous" for userId as placeholder until auth is fully integrated in upload
-        var newTrack = new Track(title, artist, "Anonymous", fileName, file.getContentType(), targetLocation.toString(), imageFileName);
+        String userId = "Anonymous";
+        String artist = "Anonymous";
+        if (userEmail != null) {
+            Optional<User> userOpt = userRepository.findByEmail(userEmail);
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                userId = user.getUuid().toString();
+                artist = user.getUsername();
+            }
+        }
+        var newTrack = new Track(title, artist, userId, fileName, file.getContentType(), targetLocation.toString(), imageFileName);
         return trackRepository.save(newTrack);
     }
 
@@ -100,5 +116,45 @@ public class TrackService {
         result.put("count", track.getLikeCount());
         result.put("liked", isLiked);
         return result;
+    }
+
+    public List<Track> getTracksByUserEmail(String email) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return Collections.emptyList();
+        }
+        String userId = userOpt.get().getUuid().toString();
+        return trackRepository.findAll().stream()
+                .filter(track -> userId.equals(track.getUserId()))
+                .collect(Collectors.toList());
+    }
+
+    public boolean addToPlaylist(java.util.UUID trackId, String userEmail) {
+        Optional<User> userOpt = userRepository.findByEmail(userEmail);
+        if (userOpt.isEmpty()) return false;
+        User user = userOpt.get();
+
+        Optional<PlaylistTrack> existing = playlistTrackRepository.findByUserIdAndTrackId(user.getUuid(), trackId);
+        if (existing.isPresent()) return true; // Already in playlist
+
+        playlistTrackRepository.save(new PlaylistTrack(user.getUuid(), trackId));
+        return true;
+    }
+
+    public List<Track> getPlaylistTracks(String userEmail) {
+        Optional<User> userOpt = userRepository.findByEmail(userEmail);
+        if (userOpt.isEmpty()) return Collections.emptyList();
+        
+        List<PlaylistTrack> playlistEntries = playlistTrackRepository.findByUserId(userOpt.get().getUuid());
+        List<java.util.UUID> trackIds = playlistEntries.stream().map(PlaylistTrack::getTrackId).collect(Collectors.toList());
+        
+        return trackRepository.findAllById(trackIds);
+    }
+
+    public boolean isTrackInPlaylist(java.util.UUID trackId, String userEmail) {
+        Optional<User> userOpt = userRepository.findByEmail(userEmail);
+        if (userOpt.isEmpty()) return false;
+        User user = userOpt.get();
+        return playlistTrackRepository.findByUserIdAndTrackId(user.getUuid(), trackId).isPresent();
     }
 }
