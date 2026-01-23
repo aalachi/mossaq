@@ -26,6 +26,12 @@ public class User {
 
     private String role;
 
+    @Column(length = 500)
+    private String bio;
+
+    @Column
+    private String avatarFilename;
+
     public User() {}
 
     public User(String email, String password, String role) {
@@ -51,4 +57,10 @@ public class User {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
+
+    public String getAvatarFilename() { return avatarFilename; }
+    public void setAvatarFilename(String avatarFilename) { this.avatarFilename = avatarFilename; }
 }

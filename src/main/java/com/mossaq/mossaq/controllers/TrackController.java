@@ -28,6 +28,12 @@ public class TrackController {
         this.trackService = trackService;
     }
 
+    @GetMapping({"/", "/main"})
+    public String dashboard(Model model) {
+        model.addAttribute("tracks", trackService.getAllTracks());
+        return "dashboard";
+    }
+
     @GetMapping("/track")
     public String track(@RequestParam(value = "uuid", required = false) java.util.UUID uuid, Model model) {
         if (uuid != null) {
@@ -41,10 +47,11 @@ public class TrackController {
                               @RequestParam(value = "image", required = false) MultipartFile image,
                               @RequestParam("title") String title,
                               @RequestParam("artist") String artist,
+                              java.security.Principal principal,
                               Model model) throws IOException {
-        trackService.uploadTrack(file, image, title, artist);
+        trackService.uploadTrack(file, image, title, artist, principal.getName());
         model.addAttribute("message", "Track uploaded successfully!");
-        return "track";
+        return "redirect:/profile";
     }
 
     @GetMapping("/track/{id}/stream")
@@ -100,5 +107,11 @@ public class TrackController {
         java.util.Map<String, Object> result = trackService.likeTrack(id, principal.getName());
         if (result == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/track/{id}/delete")
+    public String deleteTrack(@PathVariable java.util.UUID id, java.security.Principal principal) throws IOException {
+        trackService.deleteTrack(id, principal.getName());
+        return "redirect:/profile";
     }
 }

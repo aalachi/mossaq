@@ -34,7 +34,7 @@ public class TrackService {
         Files.createDirectories(this.fileStorageLocation);
     }
 
-    public Track uploadTrack(MultipartFile file, MultipartFile image, String title, String artist) throws IOException {
+    public Track uploadTrack(MultipartFile file, MultipartFile image, String title, String artist, String userEmail) throws IOException {
         var fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
         var targetLocation = this.fileStorageLocation.resolve(fileName);
         Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
@@ -46,8 +46,10 @@ public class TrackService {
             Files.copy(image.getInputStream(), imageTarget, StandardCopyOption.REPLACE_EXISTING);
         }
 
-        // Using "Anonymous" for userId as placeholder until auth is fully integrated in upload
-        var newTrack = new Track(title, artist, "Anonymous", fileName, file.getContentType(), targetLocation.toString(), imageFileName);
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        var newTrack = new Track(title, artist, user.getUuid().toString(), fileName, file.getContentType(), targetLocation.toString(), imageFileName);
         return trackRepository.save(newTrack);
     }
 
@@ -100,5 +102,26 @@ public class TrackService {
         result.put("count", track.getLikeCount());
         result.put("liked", isLiked);
         return result;
+    }
+
+    public List<Track> getTracksByUserId(String userId) {
+        return trackRepository.findAll().stream()
+                .filter(track -> userId.equals(track.getUserId()))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public void deleteTrack(java.util.UUID trackId, String userEmail) throws IOException {
+        User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        Track track = trackRepository.findById(trackId).orElseThrow(() -> new IllegalArgumentException("Track not found"));
+
+        if (!track.getUserId().equals(user.getUuid().toString())) {
+            throw new SecurityException("You are not authorized to delete this track");
+        }
+
+        Files.deleteIfExists(fileStorageLocation.resolve(track.getFilename()));
+        if (track.getImageFilePath() != null) {
+            Files.deleteIfExists(fileStorageLocation.resolve(track.getImageFilePath()));
+        }
+        trackRepository.delete(track);
     }
 }

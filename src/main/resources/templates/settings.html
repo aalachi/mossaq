@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings | Mossaq</title>
+    <style>
+        /* --- VARIABLES & RESET --- */
+        :root {
+            --primary: #1db954;
+            --primary-hover: #1ed760;
+            --bg-dark: #121212;
+            --bg-card: #181818;
+            --bg-hover: #282828;
+            --text-main: #ffffff;
+            --text-muted: #b3b3b3;
+            --border: #333;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        a { text-decoration: none; color: inherit; }
+
+        /* --- LAYOUT GRID --- */
+        .app-container {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            height: 100vh;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar-left {
+            background-color: black;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            color: var(--text-main);
+        }
+        .logo span { color: var(--primary); }
+
+        .nav-menu { list-style: none; }
+        .nav-item { margin-bottom: 1rem; }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 0.5rem 0;
+            transition: 0.2s;
+        }
+        .nav-link:hover, .nav-link.active { color: var(--text-main); }
+        .nav-icon { margin-right: 10px; width: 20px; text-align: center; }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            padding: 3rem;
+            overflow-y: auto;
+            background: linear-gradient(to bottom, #1e1e1e, #121212);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { margin-bottom: 2rem; font-size: 2.5rem; }
+
+        .settings-form {
+            max-width: 500px;
+            width: 100%;
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 8px;
+        }
+
+        .form-group { margin-bottom: 1.5rem; }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            background: #333;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            color: white;
+            font-size: 1rem;
+        }
+        input:focus { outline: none; border-color: var(--primary); }
+
+        .btn-save {
+            background-color: var(--primary);
+            color: black;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn-save:hover { transform: scale(1.05); background-color: var(--primary-hover); }
+
+        .avatar-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 1rem;
+            background: #333;
+        }
+        .btn-delete-avatar {
+            background: transparent;
+            border: 1px solid #e91e63;
+            color: #e91e63;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <aside class="sidebar-left">
+        <div class="logo">Mossaq<span>.</span></div>
+        <ul class="nav-menu">
+            <li class="nav-item"><a href="/main" class="nav-link"><span class="nav-icon">🏠</span> Home</a></li>
+            <li class="nav-item"><a href="#" class="nav-link"><span class="nav-icon">🎵</span> My Library</a></li>
+            <li class="nav-item"><a href="/profile" class="nav-link"><span class="nav-icon">👤</span> Profile</a></li>
+            <li class="nav-item"><a href="/settings" class="nav-link active"><span class="nav-icon">⚙️</span> Settings</a></li>
+        </ul>
+    </aside>
+
+  
+    <main class="main-content">
+        <h1>Account Settings</h1>
+        <form action="/settings" method="post" class="settings-form" enctype="multipart/form-data">
+            <div class="form-group" style="text-align: center;">
+                <label for="avatar-input" style="cursor: pointer;">
+                    <img id="avatar-preview-img" th:if="${avatar}" th:src="@{'/avatar/' + ${avatar}}" class="avatar-preview">
+                    <div id="avatar-placeholder" th:unless="${avatar}" class="avatar-preview" style="display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1rem auto;">👤</div>
+                </label>
+                <br>
+                <label for="avatar-input" style="cursor: pointer; color: var(--primary);">Change Avatar</label>
+                <input id="avatar-input" type="file" name="avatar" accept="image/*" style="display: none;" onchange="previewImage(this)">
+            </div>
+
+            <div class="form-group"><label>Username</label><input type="text" name="username" th:value="${username}" required></div>
+            <div class="form-group"><label>Email</label><input type="email" name="email" th:value="${email}" required></div>
+            <div class="form-group"><label>Bio</label><textarea name="bio" th:text="${bio}" placeholder="Tell us about yourself..."></textarea></div>
+            <div class="form-group"><label>New Password</label><input type="password" name="password" placeholder="Leave blank to keep current password"></div>
+            <button type="submit" class="btn-save">Save Changes</button>
+        </form>
+
+        <form th:if="${avatar}" action="/settings/avatar/delete" method="post" style="max-width: 500px; text-align: center; margin-top: 1rem;">
+            <button type="submit" class="btn-delete-avatar">Remove Current Avatar</button>
+        </form>
+    </main>
+
+<script>
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var img = document.getElementById('avatar-preview-img');
+                var placeholder = document.getElementById('avatar-placeholder');
+                if (img) {
+                    img.src = e.target.result;
+                } else if (placeholder) {
+                    placeholder.style.display = 'none';
+                    var newImg = document.createElement('img');
+                    newImg.id = 'avatar-preview-img';
+                    newImg.className = 'avatar-preview';
+                    newImg.src = e.target.result;
+                    placeholder.parentNode.insertBefore(newImg, placeholder);
+                }
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+</script>
+</body>
+</html>

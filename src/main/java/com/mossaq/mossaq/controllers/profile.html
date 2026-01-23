@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile | Mossaq</title>
+    <style>
+        /* --- VARIABLES & RESET (Copied from Dashboard) --- */
+        :root {
+            --primary: #1db954;
+            --primary-hover: #1ed760;
+            --bg-dark: #121212;
+            --bg-card: #181818;
+            --bg-hover: #282828;
+            --text-main: #ffffff;
+            --text-muted: #b3b3b3;
+            --border: #333;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        a { text-decoration: none; color: inherit; }
+
+        /* --- LAYOUT GRID --- */
+        .app-container {
+            display: grid;
+            grid-template-columns: 240px 1fr; /* Sidebar | Content */
+            height: 100vh;
+        }
+
+        /* --- LEFT SIDEBAR --- */
+        .sidebar-left {
+            background-color: black;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            color: var(--text-main);
+        }
+        .logo span { color: var(--primary); }
+
+        .nav-menu { list-style: none; }
+        .nav-item { margin-bottom: 1rem; }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 0.5rem 0;
+            transition: 0.2s;
+        }
+        .nav-link:hover, .nav-link.active { color: var(--text-main); }
+        .nav-icon { margin-right: 10px; width: 20px; text-align: center; }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            overflow-y: auto;
+            padding: 2rem;
+            background: linear-gradient(to bottom, #1e1e1e, #121212);
+        }
+
+        /* --- PROFILE HEADER --- */
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        .profile-avatar {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            color: #555;
+            box-shadow: 0 4px 60px rgba(0,0,0,0.5);
+        }
+
+        .profile-info h1 { font-size: 3rem; margin-bottom: 0.5rem; font-weight: 800; }
+        .profile-info p { color: var(--text-muted); margin-bottom: 1.5rem; }
+
+        .btn-edit {
+            background: transparent;
+            border: 1px solid var(--text-muted);
+            color: var(--text-main);
+            padding: 8px 24px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.2s;
+        }
+        .btn-edit:hover { border-color: var(--text-main); transform: scale(1.05); }
+
+        /* --- TRACK LIST (Simplified from Dashboard) --- */
+        .section-title { margin-bottom: 1.5rem; font-size: 1.5rem; }
+
+        .track-card {
+            background-color: var(--bg-card);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: background 0.3s;
+        }
+        .track-card:hover { background-color: var(--bg-hover); }
+
+        .track-art {
+            width: 50px;
+            height: 50px;
+            background: #333;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+
+        .track-details { flex: 1; }
+        .track-details h4 { font-size: 1rem; margin-bottom: 4px; }
+        .track-details span { font-size: 0.8rem; color: var(--text-muted); }
+
+        .play-btn-small {
+            background: var(--primary);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-delete {
+            background: transparent;
+            border: 1px solid #e91e63;
+            color: #e91e63;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-left: auto;
+        }
+        .btn-delete:hover { background: #e91e63; color: white; }
+
+        /* Audio Player Hidden Logic */
+        audio { display: none; }
+
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <aside class="sidebar-left">
+        <div class="logo">Mossaq<span>.</span></div>
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="/main" class="nav-link">
+                    <span class="nav-icon">🏠</span> <span class="nav-text">Home</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <span class="nav-icon">🎵</span> <span class="nav-text">My Library</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/profile" class="nav-link active">
+                    <span class="nav-icon">👤</span> <span class="nav-text">Profile</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/settings" class="nav-link">
+                    <span class="nav-icon">⚙️</span> <span class="nav-text">Settings</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        
+        <div class="profile-header">
+            <div class="profile-avatar">👤</div>
+            <div class="profile-info">
+                <p>Profile</p>
+                <h1 th:text="${username}">Username</h1>
+                <p th:text="${email}">user@example.com</p>
+                <p th:if="${bio}" th:text="${bio}" style="color: var(--text-muted); font-style: italic; margin-bottom: 1rem;">User Bio</p>
+                <a href="/settings" class="btn-edit">Edit Profile</a>
+            </div>
+        </div>
+
+        <h2 class="section-title">Your Uploads</h2>
+
+        <div th:if="${#lists.isEmpty(tracks)}" style="color: var(--text-muted);">
+            <p>You haven't uploaded any tracks yet.</p>
+        </div>
+
+        <div class="track-list">
+            <div class="track-card" th:each="track : ${tracks}">
+                <img th:src="@{'/track/' + ${track.id} + '/art'}" class="track-art" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCI+PHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjMzMzIi8+PC9zdmc+'">
+                
+                <button class="play-btn-small" th:data-track-id="${track.id}" onclick="togglePlay(this, this.getAttribute('data-track-id'))">▶</button>
+                
+                <div class="track-details" style="margin-left: 1rem;">
+                    <h4 th:text="${track.title}">Title</h4>
+                    <span th:text="${track.artist}">Artist</span>
+                </div>
+
+                <div style="color: var(--text-muted); font-size: 0.9rem; margin-right: 1rem;">
+                    <span th:text="${track.playCount}">0</span> plays
+                </div>
+                <div style="color: var(--text-muted); font-size: 0.9rem;">
+                    <span th:text="${track.likeCount}">0</span> likes
+                </div>
+
+                <form th:action="@{'/track/' + ${track.id} + '/delete'}" method="post" style="margin-left: auto;" onsubmit="return confirm('Are you sure you want to delete this track?');">
+                    <button type="submit" class="btn-delete">Delete</button>
+                </form>
+
+                <audio th:id="'audio-' + ${track.id}" th:src="@{'/track/' + ${track.id} + '/stream'}" onended="resetBtn(this)"></audio>
+            </div>
+        </div>
+
+    </main>
+
+</div>
+
+<script>
+    let currentAudio = null;
+    let currentBtn = null;
+
+    function togglePlay(btn, trackId) {
+        const audio = document.getElementById('audio-' + trackId);
+
+        if (currentAudio && currentAudio !== audio) {
+            currentAudio.pause();
+            if(currentBtn) currentBtn.innerText = '▶';
+        }
+
+        if (audio.paused) {
+            audio.play();
+            btn.innerText = '⏸';
+            currentAudio = audio;
+            currentBtn = btn;
+        } else {
+            audio.pause();
+            btn.innerText = '▶';
+            currentAudio = null;
+            currentBtn = null;
+        }
+    }
+
+    function resetBtn(audio) {
+        // Find the button associated with this audio
+        // Since we don't have a direct link in this simple script, we rely on the user clicking.
+        // But for auto-reset on end:
+        if(currentBtn) currentBtn.innerText = '▶';
+        currentAudio = null;
+    }
+</script>
+
+</body>
+</html>
