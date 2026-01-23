@@ -1,6 +1,8 @@
 package com.mossaq.mossaq.controllers;
 
+import com.mossaq.mossaq.model.Friendship;
 import com.mossaq.mossaq.model.User;
+import com.mossaq.mossaq.repository.FriendshipRepository;
 import com.mossaq.mossaq.repository.UserRepository;
 import com.mossaq.mossaq.services.TrackService;
 import com.mossaq.mossaq.services.UserService;
@@ -22,6 +24,10 @@ import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Controller
@@ -30,11 +36,13 @@ public class HomeController {
     private final TrackService trackService;
     private final UserService userService;
     private final UserRepository userRepository;
+    private final FriendshipRepository friendshipRepository;
 
-    public HomeController(TrackService trackService, UserService userService, UserRepository userRepository) {
+    public HomeController(TrackService trackService, UserService userService, UserRepository userRepository, FriendshipRepository friendshipRepository) {
         this.trackService = trackService;
         this.userService = userService;
         this.userRepository = userRepository;
+        this.friendshipRepository = friendshipRepository;
     }
 
     @GetMapping("/")
@@ -80,6 +88,28 @@ public class HomeController {
         model.addAttribute("avatar", user.getAvatarFilename());
         // On convertit l'UUID en String car dans Track c'est stocké en String pour l'instant
         model.addAttribute("tracks", trackService.getTracksByUserId(user.getUuid().toString()));
+
+        // Fetch Friends
+        List<Friendship> friendsRaw = friendshipRepository.findAllFriends(user.getUuid());
+        List<User> friends = new ArrayList<>();
+        for (Friendship f : friendsRaw) {
+            java.util.UUID friendId = f.getRequesterId().equals(user.getUuid()) ? f.getAddresseeId() : f.getRequesterId();
+            userRepository.findById(friendId).ifPresent(friends::add);
+        }
+        model.addAttribute("friends", friends);
+
+        // Fetch Incoming Requests
+        List<Friendship> requestsRaw = friendshipRepository.findByAddresseeIdAndStatus(user.getUuid(), Friendship.FriendshipStatus.PENDING);
+        List<Map<String, Object>> incomingRequests = new ArrayList<>();
+        for (Friendship f : requestsRaw) {
+            userRepository.findById(f.getRequesterId()).ifPresent(u -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("friendshipId", f.getId());
+                map.put("user", u);
+                incomingRequests.add(map);
+            });
+        }
+        model.addAttribute("incomingRequests", incomingRequests);
         
         return "profile";
     }

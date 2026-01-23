@@ -157,6 +157,31 @@
         /* Audio Player Hidden Logic */
         audio { display: none; }
 
+        .btn-logout {
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+        .btn-logout:hover {
+            color: #ff4b4b;
+        }
+
+        /* Search Styles */
+        .search-bar { display: flex; gap: 10px; margin-bottom: 2rem; }
+        .search-input { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #333; background: #181818; color: white; }
+        .search-btn { background: var(--primary); border: none; padding: 0 20px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+        .search-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .user-card { background: #181818; padding: 1rem; border-radius: 8px; text-align: center; }
+        .user-card:hover { background: #282828; }
+
+        /* Friend List Styles */
+        .friend-request-card { background: #222; padding: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .btn-accept { background: var(--primary); color: black; border: none; padding: 5px 15px; border-radius: 15px; cursor: pointer; font-weight: bold; margin-right: 5px; }
+        .btn-decline { background: transparent; border: 1px solid #555; color: #aaa; padding: 5px 15px; border-radius: 15px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -187,6 +212,12 @@
                 </a>
             </li>
         </ul>
+
+        <form th:action="@{/logout}" method="post" style="margin-top: auto;">
+            <button type="submit" class="nav-link btn-logout">
+                <span class="nav-icon">🚪</span> <span class="nav-text">Logout</span>
+            </button>
+        </form>
     </aside>
 
     <main class="main-content">
@@ -200,6 +231,54 @@
                 <p th:text="${email}">user@example.com</p>
                 <p th:if="${bio}" th:text="${bio}" style="color: var(--text-muted); font-style: italic; margin-bottom: 1rem;">User Bio</p>
                 <a href="/settings" class="btn-edit">Edit Profile</a>
+            </div>
+        </div>
+
+        <!-- User Search -->
+        <form action="/profile/search" method="get" class="search-bar">
+            <input type="text" name="query" class="search-input" placeholder="Search for other users..." th:value="${searchQuery}">
+            <button type="submit" class="search-btn">Search</button>
+        </form>
+
+        <div th:if="${searchResults}" class="search-results">
+            <div th:each="user : ${searchResults}" class="user-card">
+                <div style="font-size: 2rem; margin-bottom: 0.5rem;">👤</div>
+                <h3 th:text="${user.username}" style="font-size: 1.1rem; margin-bottom: 0.5rem;">Username</h3>
+                <a th:href="@{'/user/' + ${user.uuid}}" class="btn-edit" style="font-size: 0.8rem; padding: 4px 12px;">View Profile</a>
+            </div>
+            <div th:if="${#lists.isEmpty(searchResults)}" style="grid-column: 1/-1; color: var(--text-muted);">
+                No users found matching your search.
+            </div>
+        </div>
+
+        <!-- Friend Requests -->
+        <div th:if="${!#lists.isEmpty(incomingRequests)}">
+            <h2 class="section-title">Friend Requests</h2>
+            <div th:each="req : ${incomingRequests}" class="friend-request-card">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="font-size: 1.5rem;">👤</div>
+                    <span th:text="${req.user.username}" style="font-weight:bold;">User</span>
+                </div>
+                <div>
+                    <form th:action="@{/friend/accept/{id}(id=${req.friendshipId})}" method="post" style="display:inline;">
+                        <button type="submit" class="btn-accept">Accept</button>
+                    </form>
+                    <form th:action="@{/friend/decline/{id}(id=${req.friendshipId})}" method="post" style="display:inline;">
+                        <button type="submit" class="btn-decline">Decline</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Friends List -->
+        <div th:if="${!#lists.isEmpty(friends)}">
+            <h2 class="section-title">My Friends</h2>
+            <div class="search-results">
+                <div th:each="friend : ${friends}" class="user-card">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">👤</div>
+                    <h3 th:text="${friend.username}" style="font-size: 1.1rem; margin-bottom: 0.5rem;">Username</h3>
+                    <a th:href="@{'/user/' + ${friend.uuid}}" class="btn-edit" style="font-size: 0.8rem; padding: 4px 12px;">View Profile</a>
+                </div>
             </div>
         </div>
 
@@ -227,6 +306,11 @@
                     <span th:text="${track.likeCount}">0</span> likes
                 </div>
 
+                <!-- Delete Button Form -->
+                <form th:action="@{/track/{id}/delete(id=${track.id})}" method="post"
+                      style="display:inline;"
+                      onsubmit="return confirm('Are you sure you want to delete this track? This cannot be undone.');"><button type="submit" style=" background-color:red; color:white" class="btn-delete">Delete</button>
+                </form>
                 <audio th:id="'audio-' + ${track.id}" th:src="@{'/track/' + ${track.id} + '/stream'}" onended="resetBtn(this)"></audio>
             </div>
         </div>

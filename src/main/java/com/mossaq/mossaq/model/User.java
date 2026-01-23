@@ -1,61 +1,46 @@
 package com.mossaq.mossaq.model;
 
 import jakarta.persistence.*;
+import org.springframework.data.domain.Persistable;
 import java.util.UUID;
 
 @Entity
 @Table(name = "users")
-public class User {
+public class User implements Persistable<UUID> {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(unique = true)
     private UUID uuid;
-
-    @Column(unique = true, nullable = false)
-    private String email;
-
-    @Column(nullable = false)
-    private String password;
 
     @Column(unique = true, nullable = false)
     private String username;
 
+    @Column(unique = true, nullable = false)
+    private String email;
+
+    private String password;
     private String role;
-
-    @Column(length = 500)
     private String bio;
-
-    @Column
     private String avatarFilename;
 
-    @Column(nullable = false)
+    @Column(name = "email_notifications")
     private boolean emailNotifications = true;
+
+    @Transient
+    private boolean isNew = true;
 
     public User() {}
 
-    public User(String email, String password, String role) {
-        this.email = email;
-        this.password = password;
-        this.role = role;
-    }
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
     public UUID getUuid() { return uuid; }
     public void setUuid(UUID uuid) { this.uuid = uuid; }
+
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
-
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
@@ -68,4 +53,20 @@ public class User {
 
     public boolean isEmailNotifications() { return emailNotifications; }
     public void setEmailNotifications(boolean emailNotifications) { this.emailNotifications = emailNotifications; }
+
+    @Override
+    public UUID getId() {
+        return uuid;
+    }
+
+    @Override
+    public boolean isNew() {
+        return isNew;
+    }
+
+    @PostLoad
+    @PostPersist
+    void markNotNew() {
+        this.isNew = false;
+    }
 }

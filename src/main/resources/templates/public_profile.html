@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${user.username} + ' | Mossaq'">Profile | Mossaq</title>
+    <style>
+        /* --- VARIABLES & RESET --- */
+        :root {
+            --primary: #1db954;
+            --bg-dark: #121212;
+            --bg-card: #181818;
+            --bg-hover: #282828;
+            --text-main: #ffffff;
+            --text-muted: #b3b3b3;
+            --border: #333;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        a { text-decoration: none; color: inherit; }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            height: 100vh;
+        }
+
+        .sidebar-left {
+            background-color: black;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+        }
+
+        .logo { font-size: 1.5rem; font-weight: 700; margin-bottom: 2rem; color: var(--text-main); }
+        .logo span { color: var(--primary); }
+        .nav-menu { list-style: none; }
+        .nav-item { margin-bottom: 1rem; }
+        .nav-link { display: flex; align-items: center; color: var(--text-muted); font-weight: 600; padding: 0.5rem 0; transition: 0.2s; }
+        .nav-link:hover { color: var(--text-main); }
+        .nav-icon { margin-right: 10px; width: 20px; text-align: center; }
+
+        .main-content { overflow-y: auto; padding: 2rem; background: linear-gradient(to bottom, #1e1e1e, #121212); }
+
+        .profile-header { display: flex; align-items: center; gap: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border); margin-bottom: 2rem; }
+        .profile-avatar { width: 150px; height: 150px; border-radius: 50%; background: #333; display: flex; align-items: center; justify-content: center; font-size: 4rem; color: #555; object-fit: cover; }
+        .profile-info h1 { font-size: 3rem; margin-bottom: 0.5rem; font-weight: 800; }
+        .profile-info p { color: var(--text-muted); margin-bottom: 1.5rem; }
+
+        .track-card { background-color: var(--bg-card); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem; transition: background 0.3s; }
+        .track-card:hover { background-color: var(--bg-hover); }
+        .track-art { width: 50px; height: 50px; background: #333; border-radius: 4px; object-fit: cover; }
+        .track-details { flex: 1; }
+        .play-btn-small { background: var(--primary); border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        audio { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <aside class="sidebar-left">
+        <div class="logo">Mossaq<span>.</span></div>
+        <ul class="nav-menu">
+            <li class="nav-item"><a href="/main" class="nav-link"><span class="nav-icon">🏠</span> <span class="nav-text">Home</span></a></li>
+            <li class="nav-item"><a href="/library" class="nav-link"><span class="nav-icon">🎵</span> <span class="nav-text">My Library</span></a></li>
+            <li class="nav-item"><a href="/profile" class="nav-link"><span class="nav-icon">👤</span> <span class="nav-text">My Profile</span></a></li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        
+        <div class="profile-header">
+            <img th:if="${user.avatarFilename}" th:src="@{'/avatar/' + ${user.avatarFilename}}" class="profile-avatar">
+            <div th:unless="${user.avatarFilename}" class="profile-avatar">👤</div>
+            <div class="profile-info">
+                <p>Artist Profile</p>
+                <h1 th:text="${user.username}">Username</h1>
+                <p th:if="${user.bio}" th:text="${user.bio}" style="color: var(--text-muted); font-style: italic;">User Bio</p>
+            </div>
+            
+            <!-- Friend Action Button -->
+            <div style="margin-left: auto;">
+                <div th:if="${friendshipStatus == 'FRIENDS'}">
+                    <button disabled style="background: #333; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold;">Friends ✔️</button>
+                </div>
+                <div th:if="${friendshipStatus == 'REQUEST_SENT'}">
+                    <button disabled style="background: #333; color: #aaa; border: none; padding: 10px 20px; border-radius: 20px;">Request Sent</button>
+                </div>
+                <div th:if="${friendshipStatus == 'NONE' or friendshipStatus == null}">
+                    <form th:action="@{/friend/add/{id}(id=${user.uuid})}" method="post">
+                        <button type="submit" style="background: var(--primary); color: black; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer;">Add Friend</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="section-title" th:text="${user.username} + '\'s Uploads'">Uploads</h2>
+
+        <div th:if="${#lists.isEmpty(tracks)}" style="color: var(--text-muted);">
+            <p>This user hasn't uploaded any tracks yet.</p>
+        </div>
+
+        <div class="track-list">
+            <div class="track-card" th:each="track : ${tracks}">
+                <img th:src="@{'/track/' + ${track.id} + '/art'}" class="track-art" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCI+PHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjMzMzIi8+PC9zdmc+'">
+                
+                <button class="play-btn-small" th:data-track-id="${track.id}" onclick="togglePlay(this, this.getAttribute('data-track-id'))">▶</button>
+                
+                <div class="track-details" style="margin-left: 1rem;">
+                    <h4 th:text="${track.title}">Title</h4>
+                    <span th:text="${track.artist}">Artist</span>
+                </div>
+
+                <div style="color: var(--text-muted); font-size: 0.9rem; margin-right: 1rem;">
+                    <span th:text="${track.playCount}">0</span> plays
+                </div>
+                <div style="color: var(--text-muted); font-size: 0.9rem; margin-right: 1rem;">
+                    <span th:text="${track.likeCount}">0</span> likes
+                </div>
+
+                <!-- Add to Playlist Button -->
+                <button style="background:transparent; border:1px solid #555; color:white; border-radius:20px; padding:4px 12px; cursor:pointer;" 
+                        th:data-track-id="${track.id}" onclick="addToPlaylist(this, this.getAttribute('data-track-id'))">
+                    + Add
+                </button>
+
+                <audio th:id="'audio-' + ${track.id}" th:src="@{'/track/' + ${track.id} + '/stream'}" onended="resetBtn(this)"></audio>
+            </div>
+        </div>
+
+    </main>
+
+</div>
+
+<script>
+    let currentAudio = null;
+    let currentBtn = null;
+
+    function togglePlay(btn, trackId) {
+        const audio = document.getElementById('audio-' + trackId);
+        if (currentAudio && currentAudio !== audio) {
+            currentAudio.pause();
+            if(currentBtn) currentBtn.innerText = '▶';
+        }
+        if (audio.paused) {
+            audio.play();
+            btn.innerText = '⏸';
+            currentAudio = audio;
+            currentBtn = btn;
+        } else {
+            audio.pause();
+            btn.innerText = '▶';
+            currentAudio = null;
+            currentBtn = null;
+        }
+    }
+    function resetBtn(audio) { if(currentBtn) currentBtn.innerText = '▶'; currentAudio = null; }
+
+    function addToPlaylist(btn, trackId) {
+        fetch('/track/' + trackId + '/playlist', {
+            method: 'POST'
+        })
+        .then(response => {
+            if (response.ok) {
+                btn.innerText = '✔️ Added';
+                btn.disabled = true;
+            } else {
+                alert('Could not add to playlist. Please try again.');
+            }
+        })
+        .catch(error => console.error('Error adding to playlist:', error));
+    }
+</script>
+</body>
+</html>

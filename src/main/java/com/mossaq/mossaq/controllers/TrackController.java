@@ -1,5 +1,10 @@
 package com.mossaq.mossaq.controllers;
 
+import com.mossaq.mossaq.model.Friendship;
+import com.mossaq.mossaq.model.SharedTrack;
+import com.mossaq.mossaq.repository.FriendshipRepository;
+import com.mossaq.mossaq.repository.SharedTrackRepository;
+import com.mossaq.mossaq.repository.UserRepository;
 import com.mossaq.mossaq.services.TrackService;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -13,25 +18,50 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 
 @Controller
 public class TrackController {
 
     private final TrackService trackService;
+    private final UserRepository userRepository;
+    private final FriendshipRepository friendshipRepository;
+    private final SharedTrackRepository sharedTrackRepository;
 
-    public TrackController(TrackService trackService) {
+    public TrackController(TrackService trackService, UserRepository userRepository, FriendshipRepository friendshipRepository, SharedTrackRepository sharedTrackRepository) {
         this.trackService = trackService;
+        this.userRepository = userRepository;
+        this.friendshipRepository = friendshipRepository;
+        this.sharedTrackRepository = sharedTrackRepository;
     }
 
     @GetMapping("/main")
-    public String dashboard(Model model) {
+    public String dashboard(Model model, Principal principal) {
         model.addAttribute("tracks", trackService.getAllTracks());
+        
+        if (principal != null) {
+            userRepository.findByEmail(principal.getName()).ifPresent(user -> {
+                // Fetch Friends for Share Modal
+                List<Friendship> friendsRaw = friendshipRepository.findAllFriends(user.getUuid());
+                List<com.mossaq.mossaq.model.User> friends = new ArrayList<>();
+                for (Friendship f : friendsRaw) {
+                    UUID friendId = f.getRequesterId().equals(user.getUuid()) ? f.getAddresseeId() : f.getRequesterId();
+                    userRepository.findById(friendId).ifPresent(friends::add);
+                }
+                model.addAttribute("friends", friends);
+            });
+        }
+        
         return "dashboard";
     }
 
@@ -117,8 +147,13 @@ public class TrackController {
     }
 
     @PostMapping("/track/{id}/delete")
-    public String deleteTrack(@PathVariable java.util.UUID id, java.security.Principal principal) throws IOException {
-        trackService.deleteTrack(id, principal.getName());
+    public String deleteTrack(@PathVariable java.util.UUID id, java.security.Principal principal, RedirectAttributes redirectAttributes) {
+        try {
+            trackService.deleteTrack(id, principal.getName());
+            redirectAttributes.addFlashAttribute("message", "Track deleted successfully");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Error deleting track: " + e.getMessage());
+        }
         return "redirect:/profile";
     }
 
@@ -134,10 +169,53 @@ public class TrackController {
         return "dashboard";
     }
 
+    @GetMapping("/shared")
+    public String shared(Model model, Principal principal) {
+        if (principal == null) return "redirect:/login";
+
+        List<com.mossaq.mossaq.model.Track> tracks = new ArrayList<>();
+
+        userRepository.findByEmail(principal.getName()).ifPresent(user -> {
+            List<SharedTrack> sharedTracks = sharedTrackRepository.findByRecipientIdOrderBySharedAtDesc(user.getUuid());
+            for (SharedTrack st : sharedTracks) {
+                trackService.getTrackById(st.getTrackId()).ifPresent(tracks::add);
+            }
+
+            // Fetch Friends for Share Modal (so you can re-share)
+            List<Friendship> friendsRaw = friendshipRepository.findAllFriends(user.getUuid());
+            List<com.mossaq.mossaq.model.User> friends = new ArrayList<>();
+            for (Friendship f : friendsRaw) {
+                UUID friendId = f.getRequesterId().equals(user.getUuid()) ? f.getAddresseeId() : f.getRequesterId();
+                userRepository.findById(friendId).ifPresent(friends::add);
+            }
+            model.addAttribute("friends", friends);
+        });
+
+        model.addAttribute("tracks", tracks);
+        model.addAttribute("sectionTitle", "Shared with Me");
+        model.addAttribute("activeTab", "shared");
+        return "dashboard";
+    }
+
     @PostMapping("/track/{id}/playlist")
     public ResponseEntity<Void> addToPlaylist(@PathVariable java.util.UUID id, java.security.Principal principal) {
         if (principal == null) return ResponseEntity.status(401).build();
         boolean success = trackService.addToPlaylist(id, principal.getName());
         return success ? ResponseEntity.ok().build() : ResponseEntity.badRequest().build();
+    }
+
+    @PostMapping("/track/share")
+    public String shareTrack(@RequestParam UUID trackId, @RequestParam(required = false) List<UUID> recipientIds, Principal principal, RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        if (recipientIds == null || recipientIds.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Please select at least one friend.");
+            return "redirect:/main";
+        }
+
+        userRepository.findByEmail(principal.getName()).ifPresent(sender -> {
+            recipientIds.forEach(recipientId -> sharedTrackRepository.save(new SharedTrack(sender.getUuid(), recipientId, trackId)));
+        });
+        redirectAttributes.addFlashAttribute("message", "Track shared successfully!");
+        return "redirect:/main";
     }
 }

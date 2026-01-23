@@ -322,6 +322,43 @@
             cursor: pointer;
         }
 
+        /* --- SHARE MODAL --- */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 2000; 
+            left: 0; top: 0; 
+            width: 100%; height: 100%; 
+            background-color: rgba(0,0,0,0.8); 
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background-color: var(--bg-card);
+            margin: 15% auto; 
+            padding: 2rem; 
+            border: 1px solid var(--border); 
+            width: 90%; max-width: 400px; 
+            border-radius: 12px;
+            position: relative;
+        }
+        .close-modal {
+            position: absolute; top: 10px; right: 15px;
+            color: var(--text-muted); font-size: 1.5rem; cursor: pointer;
+        }
+        .friend-list-select {
+            max-height: 200px; overflow-y: auto; margin: 1rem 0;
+            border: 1px solid var(--border); padding: 0.5rem; border-radius: 4px;
+        }
+        .friend-option {
+            display: flex; align-items: center; gap: 10px; padding: 8px;
+            border-bottom: 1px solid #333;
+        }
+        .friend-option:last-child { border-bottom: none; }
+        .btn-send-share {
+            width: 100%; background: var(--primary); color: black; border: none;
+            padding: 10px; border-radius: 20px; font-weight: bold; cursor: pointer;
+        }
+        
         /* Responsive */
         @media (max-width: 1000px) {
             .app-container { grid-template-columns: 80px 1fr 0px; } /* Hide Right sidebar on tablet */
@@ -349,6 +386,11 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a th:href="@{/shared}" class="nav-link" th:classappend="${activeTab == 'shared'} ? 'active'">
+                    <span class="nav-icon">📨</span> <span class="nav-text">Shared with Me</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a href="/profile" class="nav-link">
                     <span class="nav-icon">👤</span> <span class="nav-text">Profile</span>
                 </a>
@@ -360,6 +402,10 @@
             </li>
         </ul>
     </aside>
+
+    <!-- Flash Messages -->
+    <div th:if="${message}" style="position: fixed; top: 20px; right: 20px; background: #1db954; color: black; padding: 10px 20px; border-radius: 4px; z-index: 3000;" th:text="${message}"></div>
+    <div th:if="${error}" style="position: fixed; top: 20px; right: 20px; background: #ff4b4b; color: white; padding: 10px 20px; border-radius: 4px; z-index: 3000;" th:text="${error}"></div>
 
     <main class="main-feed">
         <header class="feed-header">
@@ -394,7 +440,7 @@
             <div class="track-actions">
                 <button class="action-btn like" th:data-track-id="${track.id}" onclick="toggleLike(this, this.getAttribute('data-track-id'))">♥ <span th:text="${track.likeCount}">90</span></button>
                 <button class="action-btn" th:data-track-id="${track.id}" onclick="toggleComments(this.getAttribute('data-track-id'))">💬 <span th:text="${track.commentCount}">45</span></button>
-                <button class="action-btn">🔗 Share</button>
+                <button class="action-btn" th:data-track-id="${track.id}" onclick="openShareModal(this.getAttribute('data-track-id'))">🔗 Share</button>
             </div>
 
             <div th:id="'comments-' + ${track.id}" class="comment-box">
@@ -454,6 +500,25 @@
         </div>
     </aside>
 
+    <!-- Share Modal -->
+    <div id="shareModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeShareModal()">&times;</span>
+            <h3>Share with Friends</h3>
+            <form action="/track/share" method="post">
+                <input type="hidden" name="trackId" id="shareTrackId">
+                <div class="friend-list-select">
+                    <div th:each="friend : ${friends}" class="friend-option">
+                        <input type="checkbox" name="recipientIds" th:value="${friend.uuid}" th:id="'friend-' + ${friend.uuid}">
+                        <label th:for="'friend-' + ${friend.uuid}" th:text="${friend.username}" style="cursor: pointer; flex: 1;">Friend Name</label>
+                    </div>
+                    <div th:if="${#lists.isEmpty(friends)}" style="color: var(--text-muted); text-align: center; padding: 10px;">No friends found. Add some friends first!</div>
+                </div>
+                <button type="submit" class="btn-send-share" th:disabled="${#lists.isEmpty(friends)}">Send</button>
+            </form>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -461,7 +526,7 @@
     let currentBtn = null;
     let currentContainer = null;
 
-        window.togglePlay = function(btn, trackId) {
+    window.togglePlay = function(btn, trackId) {
         const audio = document.getElementById('audio-' + trackId);
         const container = btn.closest('.audio-player-ui');
 
@@ -487,9 +552,9 @@
             currentBtn = null;
             currentContainer = null;
         }
-        };
+    };
 
-        window.resetPlayerUI = function(audio) {
+    window.resetPlayerUI = function(audio) {
         const container = audio.closest('.audio-player-ui');
         const btn = container.querySelector('.play-btn');
         
@@ -508,8 +573,10 @@
         const slider = container.querySelector('.seek-slider');
         const totalTimeEl = container.querySelector('.time-text.total');
         
-        slider.max = audio.duration;
-        totalTimeEl.innerText = formatTime(audio.duration);
+        if(slider && totalTimeEl && audio.duration) {
+             slider.max = audio.duration;
+             totalTimeEl.innerText = formatTime(audio.duration);
+        }
     }
 
     function updateProgress(audio) {
@@ -517,8 +584,8 @@
         const slider = container.querySelector('.seek-slider');
         const currentTimeEl = container.querySelector('.time-text.current');
         
-        slider.value = audio.currentTime;
-        currentTimeEl.innerText = formatTime(audio.currentTime);
+        if(slider) slider.value = audio.currentTime;
+        if(currentTimeEl) currentTimeEl.innerText = formatTime(audio.currentTime);
     }
 
     function seekAudio(slider) {
@@ -568,6 +635,23 @@
         if (window.getSelection().toString().length > 0) return;
 
         window.location.href = '/track?uuid=' + trackId;
+    }
+
+    function openShareModal(trackId) {
+        document.getElementById('shareTrackId').value = trackId;
+        document.getElementById('shareModal').style.display = 'block';
+    }
+
+    function closeShareModal() {
+        document.getElementById('shareModal').style.display = 'none';
+    }
+    
+    // Close modal if clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('shareModal');
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
     }
 </script>
 </body>
