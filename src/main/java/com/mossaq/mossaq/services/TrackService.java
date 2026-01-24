@@ -41,7 +41,7 @@ public class TrackService {
         Files.createDirectories(this.fileStorageLocation);
     }
 
-    public Track uploadTrack(MultipartFile file, MultipartFile image, String title, String userEmail) throws IOException {
+    public Track uploadTrack(MultipartFile file, MultipartFile image, String title, String artistName, String userEmail) throws IOException {
         var fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
         var targetLocation = this.fileStorageLocation.resolve(fileName);
         Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
@@ -54,13 +54,16 @@ public class TrackService {
         }
 
         String userId = "Anonymous";
-        String artist = "Anonymous";
+        String artist = (artistName != null && !artistName.trim().isEmpty()) ? artistName : "Anonymous";
+
         if (userEmail != null) {
             Optional<User> userOpt = userRepository.findByEmail(userEmail);
             if (userOpt.isPresent()) {
                 User user = userOpt.get();
                 userId = user.getUuid().toString();
-                artist = user.getUsername();
+                if (artistName == null || artistName.trim().isEmpty()) {
+                    artist = user.getUsername();
+                }
             }
         }
         var newTrack = new Track(title, artist, userId, fileName, file.getContentType(), targetLocation.toString(), imageFileName);

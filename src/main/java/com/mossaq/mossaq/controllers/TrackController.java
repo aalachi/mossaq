@@ -69,9 +69,37 @@ public class TrackController {
     public String track(@RequestParam(value = "uuid", required = false) java.util.UUID uuid, Model model, Principal principal) {
         if (uuid != null) {
             trackService.getTrackById(uuid).ifPresent(track -> {
+                if (track.getComments() != null) {
+                    track.getComments().sort((c1, c2) -> Long.compare(c2.getTimestamp(), c1.getTimestamp()));
+                }
                 model.addAttribute("track", track);
+                
+                // Fetch Artist User details for the sidebar
+                try {
+                    if (track.getUserId() != null) {
+                        UUID artistId = UUID.fromString(track.getUserId());
+                        userRepository.findById(artistId).ifPresent(artist -> {
+                            model.addAttribute("artistUser", artist);
+                            model.addAttribute("followerCount", friendshipRepository.findAllFriends(artistId).size());
+                        });
+                    }
+                } catch (IllegalArgumentException e) {
+                    // Track userId is not a UUID (e.g. "Anonymous"), skip artist details
+                }
+
                 if (principal != null) {
                     model.addAttribute("inPlaylist", trackService.isTrackInPlaylist(uuid, principal.getName()));
+                    
+                    // Fetch Friends for Share Modal
+                    userRepository.findByEmail(principal.getName()).ifPresent(user -> {
+                        List<Friendship> friendsRaw = friendshipRepository.findAllFriends(user.getUuid());
+                        List<com.mossaq.mossaq.model.User> friends = new ArrayList<>();
+                        for (Friendship f : friendsRaw) {
+                            UUID friendId = f.getRequesterId().equals(user.getUuid()) ? f.getAddresseeId() : f.getRequesterId();
+                            userRepository.findById(friendId).ifPresent(friends::add);
+                        }
+                        model.addAttribute("friends", friends);
+                    });
                 } else {
                     model.addAttribute("inPlaylist", false);
                 }
@@ -84,11 +112,13 @@ public class TrackController {
     public String uploadTrack(@RequestParam("file") MultipartFile file,
                               @RequestParam(value = "image", required = false) MultipartFile image,
                               @RequestParam("title") String title,
+                              @RequestParam(value = "artist", required = false) String artist,
                               java.security.Principal principal,
                               Model model) throws IOException {
-        trackService.uploadTrack(file, image, title, principal.getName());
+        String email = (principal != null) ? principal.getName() : null;
+        trackService.uploadTrack(file, image, title, artist, email);
         model.addAttribute("message", "Track uploaded successfully!");
-        return "redirect:/profile";
+        return (principal != null) ? "redirect:/profile" : "redirect:/main";
     }
 
     @GetMapping("/track/{id}/stream")
@@ -205,17 +235,22 @@ public class TrackController {
     }
 
     @PostMapping("/track/share")
-    public String shareTrack(@RequestParam UUID trackId, @RequestParam(required = false) List<UUID> recipientIds, Principal principal, RedirectAttributes redirectAttributes) {
+    public String shareTrack(@RequestParam UUID trackId, @RequestParam(required = false) List<UUID> recipientIds, @RequestParam(required = false) String source, Principal principal, RedirectAttributes redirectAttributes) {
+        String redirectUrl = "redirect:/main";
+        if ("track".equals(source)) {
+            redirectUrl = "redirect:/track?uuid=" + trackId;
+        }
+
         if (principal == null) return "redirect:/login";
         if (recipientIds == null || recipientIds.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Please select at least one friend.");
-            return "redirect:/main";
+            return redirectUrl;
         }
 
         userRepository.findByEmail(principal.getName()).ifPresent(sender -> {
             recipientIds.forEach(recipientId -> sharedTrackRepository.save(new SharedTrack(sender.getUuid(), recipientId, trackId)));
         });
         redirectAttributes.addFlashAttribute("message", "Track shared successfully!");
-        return "redirect:/main";
+        return redirectUrl;
     }
 }
