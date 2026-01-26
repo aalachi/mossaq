@@ -8,19 +8,25 @@ Mossaq is a comprehensive music streaming and social platform. It bridges the ga
 
 ### 🎧 Streaming & Playback
 *   **Seamless Audio Streaming**: Stream `.mp3` and `.wav` files directly from the browser.
-*   **Visual Player**: Interactive audio player with dynamic waveform visualizations.
+*   **Immersive Player**: Custom-styled audio player with album art display.
 *   **Track Art**: Support for custom cover art uploads.
 
 ### 🤝 Social & Community
-*   **Friend System**: Search for users, send friend requests, and manage your friends list.
+*   **Friend System**:
+    *   **Search**: Find users by name.
+    *   **Connect**: Send, accept, and decline friend requests.
+    *   **Network**: View and manage your friends list.
 *   **Private Sharing**: Share tracks directly with your friends. Access them in the "Shared with Me" section.
 *   **Engagement**: Like your favorite tracks and join the conversation in the comments section.
-*   **User Profiles**: Customizable profiles with avatars, bios, and track catalogs.
+*   **User Profiles**:
+    *   **Public**: View other users' uploads and bios.
+    *   **Personal**: Customize your avatar, bio, and account settings.
 
 ### 📂 Library & Management
-*   **Music Upload**: Creators can easily upload tracks with titles and cover images.
+*   **Music Upload**: Creators can upload tracks with titles, custom artist names, and cover images.
 *   **Personal Playlists**: Build your own library by adding tracks to "My Playlist".
-*   **Content Management**: Users have full control to delete their uploaded tracks or their entire account.
+*   **Content Management**: Users have full control to delete their uploaded tracks.
+*   **Local Sync**: Scripts to populate the database directly from a local `uploads/` folder.
 
 ## 🛠️ Tech Stack
 
@@ -34,14 +40,21 @@ Mossaq is a comprehensive music streaming and social platform. It bridges the ga
 ### Prerequisites
 
 *   Java 25 SDK installed.
-*   PostgreSQL database running.
+*   Docker & Docker Compose (optional, for running the database).
+
+### Database Setup
+
+You can start a PostgreSQL instance easily using Docker Compose:
+
+```bash
+docker-compose up -d
+```
 
 ### Running the Application
 
 1.  Clone the repository.
 2.  Navigate to the project directory.
-3.  Configure your database settings in `application.properties`.
-4.  Run the application using the Maven wrapper:
+3.  Run the application using the Maven wrapper:
 
     ```bash
     ./mvnw spring-boot:run
@@ -51,6 +64,19 @@ Mossaq is a comprehensive music streaming and social platform. It bridges the ga
 
     ```
     http://localhost:8080
+    ```
+
+### Populating the Database
+
+To seed the database with test users and tracks, you can use the provided scripts.
+
+*   **Standard Population**: Creates users and uploads sample tracks via the API (requires the app to be running).
+    ```bash
+    ./populate_db.sh
+    ```
+*   **Local Population**: Scans the `uploads/` folder and registers existing MP3 files directly into the database.
+    ```bash
+    ./populate_from_uploads.sh
     ```
 
 ## 📄 License
